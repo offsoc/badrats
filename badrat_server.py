@@ -143,7 +143,7 @@ def get_help():
     print("clear -- clear the screen. ")
     print("")
     print("Rat commands: -- commands to interact with a badrat rat")
-    print("kill -- when interacting with a rat, type kill to task the rat to shut down")
+    print("quit/kill_rat -- when interacting with a rat, type quit or kill_rat to task the rat to shut down")
     print("spawn -- used to spawn a new rat in a new wscript process.")
     print("<command> -- enter shell commands to run on the rat. Uses cmd.exe")
     print("-------------------------------------------------------------------------")
@@ -172,7 +172,7 @@ while True:
     inp = input(UNDERLINE + "Badrat" + ENDC + " //> ")
 
     # Check if the operator wants to quit badrat
-    if(inp == "exit" or inp == "quit"):
+    if(inp == "exit"):
         sys.exit()
 
     # Gets the help info
@@ -208,10 +208,11 @@ while True:
             elif(inp.startswith("cd ")):
               print("[!] Full paths only! No cd in badrat")
             elif(inp):
-                if(inp == "kill"):
+                if(inp == "quit" or inp == "kill_rat"):
                     print("[*] Tasked " + colors(ratID) + " to " + colors("commit Seppuku"))
                 else:
                     print("[*] Queued command " + colors(inp) + " for " + colors(ratID))
+
                 if(ratID == "all"):
                     # update ALL commands
                     for i in commands.keys():

@@ -107,7 +107,7 @@ while(true)
       eval("jsObject="+jsondata);
 
 	  //kill
-	  if (jsObject.cmnd == "kill") {
+	  if (jsObject.cmnd == "quit") {
 		  WScript.Quit(1);
 	  }
 
