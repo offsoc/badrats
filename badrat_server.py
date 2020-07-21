@@ -67,7 +67,7 @@ def send_ratcode(ratID):
     else:
         # Careful for path traversal vuln... This code may not be 100 percent safe
         with open(os.getcwd() + "/rats/badrat." + types[ratID], 'r') as fd:
-            print("[*] sending ratcode to " + colors(ratID))
+            print("\n[*] sending ratcode to " + colors(ratID))
             return(fd.read())
 
 def serve_server(port=8080):
