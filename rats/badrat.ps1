@@ -28,8 +28,6 @@ while ($True) {
 			$value = $_.split(":")[1].trim(" ")
 			$value = $value.Substring(1, ($value.length)-2)
 			$value = $value.Replace('\"','"')
-			echo "key $key"
-			echo "value $value"
 			$jsObject[$key] = $value
 		}
 		if($jsObject['cmnd'] -eq "quit") {
