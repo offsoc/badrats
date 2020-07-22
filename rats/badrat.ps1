@@ -22,11 +22,14 @@ while ($True) {
 	if($curcmnd -ne $jsondata) {
 		$curcmnd = $jsondata
 		# Convert json string to PS hashtable by hand ... cancer
-		# Has problems with commands ending in (") because we have to
-		# strip off quotes to get the actual values
 		$jsondata.trim("{").trim("}").split(",") | foreach {
-			$key = $_.split(":")[0].trim(" ").trim('"')
-			$value = $_.split(":")[1].trim(" ").trim('"')
+			$key = $_.split(":")[0].trim(" ")
+			$key = $key.Substring(1, ($key.length)-2)
+			$value = $_.split(":")[1].trim(" ")
+			$value = $value.Substring(1, ($value.length)-2)
+			$value = $value.Replace('\"','"')
+			echo "key $key"
+			echo "value $value"
 			$jsObject[$key] = $value
 		}
 		if($jsObject['cmnd'] -eq "quit") {
