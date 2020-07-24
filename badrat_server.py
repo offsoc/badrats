@@ -199,8 +199,10 @@ def get_help():
     print("The server is written in python and uses an HTTP listener for C2 comms")
     print("Rats are SINGLE THREADED, which means long running commands will lock up the rat. Try spawning a new rat before running risky commands")
     print("Some rats need to write to disk for execution or cmd output. Every rat that must write to disk cleans up files created.")
-    print("Rat communications are NOT SECURE. Do not send sensitive info through the C2 channel\n")
-    print("Rats are designed to use methods native to their type as much as possible. E.g.: HTA rat will never use Powershell.exe, and the Powershell rat will never use cmd.exe")
+    print("Rat communications are NOT SECURE. Do not send sensitive info through the C2 channel")
+    print("Rats are designed to use methods native to their type as much as
+        possible. E.g.: HTA rat will never use Powershell.exe, and the
+        Powershell rat will never use cmd.exe\n")
 
 if __name__ == "__main__":
     # Start the Flask server
