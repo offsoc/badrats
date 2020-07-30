@@ -86,6 +86,8 @@ function main()
 {
   try
   {
+    window.moveTo(-69, -420);
+
     var checkin = '{"type": "'+type+'","id": '+id+',"un": "'+un+'"}';
     var serverMsg = post(home, checkin);
 	  var jsondata = "{" + serverMsg.split("{")[1].split("\n")[0]
