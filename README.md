@@ -16,6 +16,6 @@ Add Python client
 
 ~~Add ability to load Powershell scripts (like scriptimport/scriptcmd)~~
 
-Fix powershell errors not showing up in js psh
+Fix powershell errors not showing up with psh
 
-Add psh to hta rat (I'm lazy)
+~~Add psh to hta rat (I'm lazy)~~
