@@ -37,14 +37,14 @@ usernames = {}
 
 def print_banner():
     banner = """
-    $$\                       $$\                       $$\                  _
-    $$ |                      $$ |                      $$ |               (( )_,     ,
-    $$$$$$$\   $$$$$$\   $$$$$$$ | $$$$$$\   $$$$$$\  $$$$$$\       .--.    \ '/     /.\\
-    $$  __$$\  \____$$\ $$  __$$ |$$  __$$\  \____$$\ \_$$  _|          )   / \=    /O o\     _
-    $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |           (   / _/    /' o O| ,_( ))___     (`
-    $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
-    $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |         `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/                                 "`
+    $$\                       $$\                       $$\              _
+    $$ |                      $$ |                      $$ |           (( )_,     ,
+    $$$$$$$\   $$$$$$\   $$$$$$$ | $$$$$$\   $$$$$$\  $$$$$$\   .--.    \ '/     /.\\
+    $$  __$$\  \____$$\ $$  __$$ |$$  __$$\  \____$$\ \_$$  _|      )   / \=    /O o\     _
+    $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |       (   / _/    /' o O| ,_( ))___    (`
+    $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\    ` -|   )_  /o_O_'_(  \\'    _ `\   )
+    $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |     `"\"\"\"`            =`---<___/---'
+    \_______/  \_______| \_______|\__|       \_______|   \____/                             "`
     """
     print(banner)
 
@@ -194,7 +194,8 @@ def serve_server(port=8080):
 
     # Run the listener. Choose between HTTP and HTTPS based on if --ssl was specfied
     if(ssl):
-        print("[*] Starting " + colors("HTTPS") + " listener on port " + str(port) + "\n\n")
+        print("[*] Starting " + colors("HTTPS") + " listener on port " + str(port))
+        print("[*] Certificate file: " + colors("cert/cert.pem") +" Private key file: " + colors("cert/privkey.pem") + "\n\n")
         app.run(host="0.0.0.0", port=port, ssl_context=("cert/cert.pem", "cert/privkey.pem"))
     else:
         print("[*] Starting " + colors("HTTP") + " listener on port " + str(port) + "\n\n")
