@@ -35,6 +35,19 @@ rats = {}
 types = {}
 usernames = {}
 
+def print_banner():
+    banner = """
+    $$\                       $$\                       $$\                  _
+    $$ |                      $$ |                      $$ |               (( )_,     ,
+    $$$$$$$\   $$$$$$\   $$$$$$$ | $$$$$$\   $$$$$$\  $$$$$$\       .--.    \ '/     /.\\
+    $$  __$$\  \____$$\ $$  __$$ |$$  __$$\  \____$$\ \_$$  _|          )   / \=    /O o\     _
+    $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |           (   / _/    /' o O| ,_( ))___     (`
+    $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
+    $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |         `"\"\"\"`            =`---<___/---'
+    \_______/  \_______| \_______|\__|       \_______|   \____/                                 "`
+    """
+    print(banner)
+
 # Required function for interactive history
 def history(numlines=-1):
     total = readline.get_current_history_length()
@@ -73,8 +86,10 @@ def colors(value):
         return( BOLD + c + ">" + js + ">" + ENDC)
     elif(value == "quit"):
         return(c + "commit Seppuku" + ENDC)
-    elif(value == "HTTP" or value == "HTTPS"):
-        return(BOLD + value + ENDC)
+    elif(value == "HTTP"):
+        return(BOLD + js + value + ENDC)
+    elif(value == "HTTPS"):
+        return(BOLD + py +value + ENDC)
     try:
         checkin = datetime.strptime(value, "%H:%M:%S")
         delta_seconds = (datetime.now() - checkin).seconds
@@ -248,6 +263,8 @@ if __name__ == "__main__":
     if not server.is_alive():
         print("\n[!] Could not start listener!")
         sys.exit()
+    else:
+        print_banner()
 
     # Badrat main menu loop
     while True:
