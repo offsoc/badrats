@@ -12,7 +12,7 @@ To do:
 
 ~~Format js to fit into hta file~~
 
-Add C client
+~~Add C client~~
 
 Add Python client
 
