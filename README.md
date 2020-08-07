@@ -1,6 +1,6 @@
 # Badrats
 
-Badrat C2 -- Python server, JScript, HTA, and Powershell implants. HTTP(S) comms. Not a good C2.
+Badrat C2 -- Python server, JScript, HTA, Powershell, and C implants. HTTP(S) comms. Not a good C2.
 
 ![image](/uploads/abaac20b287bc050ecb7400927f45e2f/image.png)
 
