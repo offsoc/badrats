@@ -5,9 +5,11 @@ Badrat C2 -- Python server, JScript, HTA, Powershell, and C implants. HTTP(S) co
 ![image](/uploads/abaac20b287bc050ecb7400927f45e2f/image.png)
 
 Viewing current rats and running a command
+
 ![image](/uploads/55fb1a39bafee727bf216e45e7e04ee2/image.png)
 
 Running a Powershell script on an HTA rat with msbuild.exe
+
 ![image](/uploads/2704d05148ed58402a8a3509da693cac/image.png)
 
 To do:
