@@ -255,7 +255,7 @@ def get_help():
     print("-------------------------------------------------------------------------")
     print("")
     print("Extra things to know:")
-    print("The rats are written in Windows JScript and Powershell, run in a wscript.exe, mshta.exe, or powershell.exe process")
+    print("The rats are written in Windows JScript and Powershell, run in a cscript.exe/wscript.exe, mshta.exe, or powershell.exe process")
     print("The server is written in python and uses an HTTP(S) listener for C2 comms")
     print("Rats are SINGLE THREADED, which means long running commands will lock up the rat. Try spawning a new rat before running risky commands")
     print("Some rats need to write to disk for execution or cmd output. Every rat that must write to disk cleans up files created.")
