@@ -30,6 +30,6 @@ Fix powershell errors not showing up with psh
 
 ~~Add psh to hta rat (I'm lazy)~~
 
-Fix psh output files not being deleted from %temp%
+~~Fix psh output files not being deleted from %temp%~~ Fixed in #081256ba
 
 ~~modify `psh` to allow extra Powershell commands after the imported file~~
