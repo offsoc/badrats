@@ -12,6 +12,10 @@ Running a Powershell script on an HTA rat with msbuild.exe
 
 ![image](/uploads/2704d05148ed58402a8a3509da693cac/image.png)
 
+Running a C Sharp program on a js rat using the `cs` keyword
+
+![image](/uploads/be43bcb34c075851dd77da0da35eaffb/image.png)
+
 To do:
 
 ~~Add python readline~~
