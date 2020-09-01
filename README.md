@@ -2,6 +2,8 @@
 
 Badrat C2 -- Python server, JScript, HTA, Powershell, and C implants. HTTP(S) comms. Not a good C2.
 
+Read the blog post here: https://henpeebin.com/kevin/blog/badrats-c2-initial-access-payloads.html
+
 ![image](/uploads/55cacc2c41463365ee6b86171b4ce5cc/image.png)
 
 Viewing current rats and running a command
