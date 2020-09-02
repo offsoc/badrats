@@ -39,3 +39,7 @@ Fix powershell errors not showing up with psh
 ~~Fix psh output files not being deleted from %temp%~~ Fixed in #081256ba
 
 ~~modify `psh` to allow extra Powershell commands after the imported file~~
+
+Add `cs` to ps1 rats
+
+Add C Sharp rat (instead of python rat (nobody wants that))
