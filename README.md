@@ -2,7 +2,7 @@
 
 Badrat C2 -- Python server, JScript, HTA, Powershell, and C implants. HTTP(S) comms. Not a good C2.
 
-Badrat v1.0 Stable
+Badrat v1.0.1
 
 Read the blog post here: https://henpeebin.com/kevin/blog/badrats-c2-initial-access-payloads.html
 
@@ -30,8 +30,6 @@ To do:
 
 ~~Add C client~~
 
-Add Python client
-
 ~~Add ability to load Powershell scripts (like scriptimport/scriptcmd)~~
 
 Fix powershell errors not showing up with psh
@@ -42,6 +40,6 @@ Fix powershell errors not showing up with psh
 
 ~~modify `psh` to allow extra Powershell commands after the imported file~~
 
-Add `cs` to ps1 rats
+~~Add `cs` to ps1 rats~~ Fixed in #e11e33a8
 
 Add C Sharp rat (instead of python rat (nobody wants that))
