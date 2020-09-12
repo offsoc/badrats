@@ -2,7 +2,18 @@
 
 Badrat C2 -- Python server, JScript, HTA, Powershell, and C implants. HTTP(S) comms. Not a good C2.
 
-Badrat v1.0.1
+Badrat v1.1.1
+
+**Supported Features**
+
+* 3 different rat types (HTA, JSCript, Powershell), for operational flexibility. All rats support all features below
+* Command shell access via Powershell.exe or cmd.exe
+* Spawn new rats
+* File upload and download capability for binary or text files
+* Download and run powershell scripts mostly in memory
+* Download and run compiled C# (.NET) assemblies mostly in memory
+* Interact with all rats simultaneously
+* Quit and gracefully clean up rats 
 
 Read the blog post here: https://henpeebin.com/kevin/blog/badrats-c2-initial-access-payloads.html
 
