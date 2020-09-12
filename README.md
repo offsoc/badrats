@@ -20,6 +20,12 @@ Running a C Sharp program on a js rat using the `cs` keyword
 
 ![image](/uploads/be43bcb34c075851dd77da0da35eaffb/image.png)
 
+Downloading an lsass minidump:
+
+![image](/uploads/0947aaeb26deb423f4ba5de43c39fe31/image.png)
+
+![image](/uploads/a82934014ffc695d8224a59c0036a7bc/image.png)
+
 To do:
 
 ~~Add python readline~~

