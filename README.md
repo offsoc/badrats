@@ -59,4 +59,4 @@ Fix powershell errors not showing up with psh
 
 ~~Add `cs` to ps1 rats~~ Fixed in #e11e33a8
 
-Add C Sharp rat (instead of python rat (nobody wants that))
+~~Add C Sharp rat (instead of python rat (nobody wants that))~~ Fixed in #2c40c41
