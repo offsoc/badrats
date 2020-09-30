@@ -21,7 +21,7 @@ Read the blog post here: https://henpeebin.com/kevin/blog/badrats-c2-initial-acc
 
 Viewing current rats and running a command
 
-![image](/uploads/55fb1a39bafee727bf216e45e7e04ee2/image.png)
+![image](/uploads/c9ac3ed3548edaf8550f007e487bf1aa/image.png)
 
 Running a Powershell script on an HTA rat with msbuild.exe
 
