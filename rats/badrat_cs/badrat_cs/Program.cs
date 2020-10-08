@@ -14,7 +14,8 @@ using System.Management.Automation;
 // Copy System.Management.Automation.dll to your C: drive with the following Powershell command: copy ([psobject].Assembly.Location) C:\
 // Add the reference in visual studio: Project > Add Reference > Browse > System.Management.Automation.dll
 
-//You also need to install the Newtonsoft.Json package from the NuGet package manager included with visual studio
+// You also need to install the Newtonsoft.Json package from the NuGet package manager included with visual studio
+// You need to add Fody.Costura NuGet package last
 namespace B4dr4t
 {
     public class Program
