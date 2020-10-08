@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -135,7 +135,7 @@ namespace B4dr4t
             }
             else
             {
-                home = args[1];
+                home = args[0];
             }
 
             HttpClient client = new HttpClient();
