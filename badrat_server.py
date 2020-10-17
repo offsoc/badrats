@@ -15,6 +15,7 @@ import time
 import json
 import sys
 import os
+import re
 
 # CSCI 201 teacher: Noooo you can't just use global variables to make things easier
 # haha, global variables go brrr
@@ -40,6 +41,91 @@ commands = {}
 rats = {}
 types = {}
 usernames = {}
+
+# Tab completion stuff -- https://stackoverflow.com/questions/5637124/tab-completion-in-pythons-raw-input
+class Completer(object):
+    def __init__(self):
+        self.tab_cmds = ['rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear']
+        self.re_space = re.compile('.*\s+$', re.M)
+
+    def add_tab_item(self, item):
+        self.tab_cmds.append(item)
+
+    def remove_tab_item(self, item):
+        self.tab_cmds.remove(item)
+
+    def _listdir(self, root):
+        "List directory 'root' appending the path separator to subdirs."
+        res = []
+        for name in os.listdir(root):
+            path = os.path.join(root, name)
+            if os.path.isdir(path):
+                name += os.sep
+            res.append(name)
+        return res
+
+    def _complete_path(self, path=None):
+        "Perform completion of filesystem path."
+        if not path:
+            return self._listdir('.')
+        dirname, rest = os.path.split(path)
+        tmp = dirname if dirname else '.'
+        res = [os.path.join(dirname, p)
+                for p in self._listdir(tmp) if p.startswith(rest)]
+        # more than one match, or single match which does not exist (typo)
+        if len(res) > 1 or not os.path.exists(path):
+            return res
+        # resolved to a single directory, so return list of files below it
+        if os.path.isdir(path):
+            return [os.path.join(path, p) for p in self._listdir(path)]
+        # exact file match terminates this completion
+        return [path + ' ']
+
+    # Fix this ... 'remove <tab>' should complete the rat id
+    def _complete_rat(self, rat=None):
+        if not rat:
+            return rats.keys()
+        if(rat in rats.keys()):
+            return [rat + ' ']
+
+    def complete_upload(self, args):
+        return self._complete_path(args[0])
+
+    def complete_psh(self, args):
+        return self._complete_path(args[0])
+
+    def complete_csharp(self, args):
+        return self._complete_path(args[0])
+
+    def complete_remove(self, args):
+        return self._complete_rat(args[0])
+
+    def complete(self, text, state):
+        "Generic readline completion entry point."
+        buffer = readline.get_line_buffer()
+        line = readline.get_line_buffer().split()
+        # show all commands
+        if not line:
+            return [c + ' ' for c in self.tab_cmds][state]
+        # account for last argument ending in a space
+        if self.re_space.match(buffer):
+            line.append('')
+        # resolve command to the implementation function
+        cmd = line[0].strip()
+        if cmd in self.tab_cmds:
+            impl = getattr(self, 'complete_%s' % cmd)
+            args = line[1:]
+            if args:
+                return (impl(args) + [None])[state]
+            return [cmd + ' '][state]
+        results = [c + ' ' for c in self.tab_cmds if c.startswith(cmd)] + [None]
+        return results[state]
+
+comp = Completer()
+# we want to treat '/' as part of a word, so override the delimiters
+readline.set_completer_delims(' \t\n;')
+readline.parse_and_bind("tab: complete")
+readline.set_completer(comp.complete)
 
 def print_banner():
     banner = """
@@ -284,6 +370,7 @@ def serve_server(port=8080):
         # If there is no current command for a rat, create a blank one
         if(ratID not in commands):
             commands[ratID] = ""
+            comp.add_tab_item(ratID)
             print("\n[*] New rat checked in: " + colors(ratID))
 
         if("retval" in post_dict.keys()):
@@ -327,10 +414,13 @@ def get_rats(current=""):
 def remove_rat(ratID):
     if(ratID == "all"):
         print("[*] Removing ALL rats")
+        for ratID in rats.keys():
+            comp.remove_tab_item(ratID)
         rats.clear()
         types.clear()
     else:
         try:
+            comp.remove_tab_item(ratID)
             del rats[ratID]
             del types[ratID]
             print("[*] Removing rat " + ratID)
@@ -392,6 +482,9 @@ if __name__ == "__main__":
     while True:
         inp = input(colors("Badrat") + " //> ")
 
+        # Check if input has a trailing space, like 'exit ' instead of 'exit' -- for tab completion
+        inp = inp.strip(" ")
+
         # Check if the operator wants to quit badrat
         if(inp == "exit"):
             print("[*] Shutting down badrat listener")
@@ -425,6 +518,7 @@ if __name__ == "__main__":
                 inp = input(colors(ratID) + " \\\\> ")
 
                 if(inp != ""):
+                    inp = inp.strip(" ")
 
                     if(inp == "back" or inp == "exit"):
                         break
@@ -437,7 +531,11 @@ if __name__ == "__main__":
                         os.system("clear")
                         continue
 
-                    elif(inp == "quit" or inp == "kill_rat"):
+                    elif(inp == "help"):
+                        get_help()
+                        continue
+
+                    elif(inp == "quit"):
                         inp = "quit"
 
                     elif(inp == "spawn"):
