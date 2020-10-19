@@ -45,7 +45,7 @@ usernames = {}
 # Tab completion stuff -- https://stackoverflow.com/questions/5637124/tab-completion-in-pythons-raw-input
 class Completer(object):
     def __init__(self):
-        self.tab_cmds = ['rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear']
+        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear']
         self.re_space = re.compile('.*\s+$', re.M)
 
     def add_tab_item(self, item):
@@ -81,13 +81,20 @@ class Completer(object):
         # exact file match terminates this completion
         return [path + ' ']
 
-    # Fix this ... 'remove <tab>' should complete the rat id
-    def _complete_rat(self, rat=None):
-        if not rat:
-            return rats.keys()
-        if(rat in rats.keys()):
-            return [rat + ' ']
+    def _complete_rat(self, ratID=None):
+        if not ratID:
+            return list(rats.keys()) + ["all"]
+        res = [rat for rat in (list(rats.keys()) + ["all"]) if rat.startswith(ratID)]
+        # Partial match
+        if(len(res) > 1):
+            return res
+        # Exact match
+        if(len(res) == 1):
+            res[0] += ' '
+            return res
 
+    # Register all these completable commands as having special arguments
+    # Completable path argments except 'remove' which autocompletes to the ratID
     def complete_upload(self, args):
         return self._complete_path(args[0])
 
@@ -483,7 +490,7 @@ if __name__ == "__main__":
         inp = input(colors("Badrat") + " //> ")
 
         # Check if input has a trailing space, like 'exit ' instead of 'exit' -- for tab completion
-        inp = inp.strip(" ")
+        inp = inp.rstrip()
 
         # Check if the operator wants to quit badrat
         if(inp == "exit"):
@@ -500,10 +507,10 @@ if __name__ == "__main__":
 
         # Remove rats -- either by ratID or all
         elif(str.startswith(inp, "remove")):
-            if(str.startswith(inp, "all", 6, 3)):
-                remove_rat("all")
-            else:
-                remove_rat(inp.split(" ")[1])
+            #try:
+            remove_rat(inp.split(" ")[1])
+            #except:
+            #    print("invalid syntax: Use 'remove <ratID>' or 'remove all'")
 
         # Clear the screen
         elif(inp == "clear"):
@@ -518,7 +525,7 @@ if __name__ == "__main__":
                 inp = input(colors(ratID) + " \\\\> ")
 
                 if(inp != ""):
-                    inp = inp.strip(" ")
+                    inp = inp.rstrip()
 
                     if(inp == "back" or inp == "exit"):
                         break
