@@ -191,7 +191,7 @@ def colors(value):
     elif(value == "HTTP"):
         return(BOLD + js + value + ENDC)
     elif(value == "HTTPS"):
-        return(BOLD + py +value + ENDC)
+        return(BOLD + cs + value + ENDC)
     try:
         checkin = datetime.strptime(value, "%H:%M:%S")
         delta_seconds = (datetime.now() - checkin).seconds
