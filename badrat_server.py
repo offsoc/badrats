@@ -518,10 +518,10 @@ if __name__ == "__main__":
 
         # Remove rats -- either by ratID or all
         elif(str.startswith(inp, "remove")):
-            #try:
-            remove_rat(inp.split(" ")[1])
-            #except:
-            #    pretty_print("invalid syntax: Use 'remove <ratID>' or 'remove all'")
+            try:
+                remove_rat(inp.split(" ")[1])
+            except:
+                pretty_print("invalid syntax: Use 'remove <ratID>' or 'remove all'")
 
         # Clear the screen
         elif(inp == "clear"):
