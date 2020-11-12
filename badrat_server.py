@@ -144,7 +144,7 @@ def pretty_print_banner():
     $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
     $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
     $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.3.2 Ad-Hoc HTAs              "`
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.3.3 Ad-Hoc HTAs              "`
     """
     pretty_print(banner)
 
@@ -191,7 +191,7 @@ def colors(value):
     elif(value == "HTTP"):
         return(BOLD + js + value + ENDC)
     elif(value == "HTTPS"):
-        return(BOLD + py +value + ENDC)
+        return(BOLD + cs + value + ENDC)
     try:
         checkin = datetime.strptime(value, "%H:%M:%S")
         delta_seconds = (datetime.now() - checkin).seconds
@@ -527,10 +527,10 @@ if __name__ == "__main__":
 
         # Remove rats -- either by ratID or all
         elif(str.startswith(inp, "remove")):
-            #try:
-            remove_rat(inp.split(" ")[1])
-            #except:
-            #    pretty_print("invalid syntax: Use 'remove <ratID>' or 'remove all'")
+            try:
+                remove_rat(inp.split(" ")[1])
+            except:
+                pretty_print("invalid syntax: Use 'remove <ratID>' or 'remove all'")
 
         # Clear the screen
         elif(inp == "clear"):

