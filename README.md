@@ -2,7 +2,7 @@
 
 Badrat C2 -- Python server, JScript, HTA, Powershell, and C# implants. HTTP(S) comms. Not a good C2.
 
-Badrat v1.3.3
+Badrat v1.3.4
 
 **Supported Features**
 
@@ -14,6 +14,7 @@ Badrat v1.3.3
 * Download and run compiled C# (.NET) assemblies mostly in memory
 * Interact with all rats simultaneously
 * Quit and gracefully clean up rats 
+* Payloads served at a random URI accessable via POST or GET
 
 Read the blog post here: https://henpeebin.com/kevin/blog/badrats-c2-initial-access-payloads.html
 

