@@ -410,7 +410,7 @@ def serve_server(port=8080):
         if(ratID not in commands):
             commands[ratID] = ""
             comp.add_tab_item(ratID)
-            pretty_print("\n[*] New rat checked in: " + colors(ratID))
+            pretty_print("[*] New rat checked in: " + colors(ratID) + "\t. . . . . .\t" + datetime.now().strftime("%H:%M:%S, %b %d"))
 
         if("retval" in post_dict.keys()):
             commands[ratID] = ""
