@@ -61,3 +61,9 @@ Fix powershell errors not showing up with psh
 ~~Add `cs` to ps1 rats~~ Fixed in #e11e33a8
 
 ~~Add C Sharp rat (instead of python rat (nobody wants that))~~ Fixed in #2c40c41
+
+Change C# spawn to create a whole new process instead of just appdomain
+
+Prevent loaded .NET assemblies from calling either Environment.Exit() or ExitProcess() and killing the rat
+
+Modify C# loader stubs to allow other function signatures than the standard void Main(string args[]) ie: int wmain(int argc, wchar\_t * argv[])
