@@ -147,7 +147,7 @@ def pretty_print_banner():
     $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
     $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
     $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.3.4 Ad-Hoc PAYLOADS! :D      "`
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.3.5 Csharp Param Fixes       "`
     """
     pretty_print(banner)
 
@@ -329,7 +329,7 @@ def parse_c_sharp_args(argument_string):
     args = " ".join(args)
 
     if(not args):
-        return('""')
+        return('  ')
     for ch in args:
         if(ch == " " and not inside_quotes):
             stringlist.append(stringbuilder) # Add finished string to the list

@@ -2,8 +2,9 @@
 Function Invoke-Assembly {
 	[CmdletBinding()]
 		Param (		
-			[Parameter()]
-			[String[]]$Arguments = ""
+			[Parameter(Mandatory = $False, Position = 0)]
+			[AllowEmptyString()]
+			[String[]]$Arguments = @()
 	)
 	$foundMain = $false
 	$asm_data = "~~ASSEMBLY~~"
@@ -18,7 +19,7 @@ Function Invoke-Assembly {
 		foreach($method in $type.GetMethods()) {
 			if($method.Name -eq "Main") {
 				$foundMain = $true
-				if($Arguments[0] -eq "") {
+				if($Arguments.count -eq 0) {
 					Write-Output "[*] Attempting to load assembly with no arguments"
 				}
 				else {
@@ -49,4 +50,4 @@ Function Invoke-Assembly {
 		throw
 	}
 }
-Invoke-Assembly -Arguments ~~ARGUMENTS~~
+Invoke-Assembly ~~ARGUMENTS~~
