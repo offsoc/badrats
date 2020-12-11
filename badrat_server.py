@@ -24,7 +24,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-p", "--port", help="Port to start the HTTP(S) server on", default=8080, action="store", dest="port")
 parser.add_argument("-s", "--ssl", help="Start listener using HTTPS instead of HTTP (default)", default=False, action="store_true", dest="ssl")
 parser.add_argument("-v", "--verbose", help="Start Badrat in debug/verbose mode for troubleshooting", default=False, action="store_true", dest="verbose")
-parser.add_argument("-r", "--redirect", help="Website to redirect non-rat clients to", default="https://en.wikipedia.org/wiki/Rat", action="store", dest="redirect_url")
+parser.add_argument("-r", "--redirect", help="Website to redirect non-rat clients to", default="en.wikipedia.org/wiki/Rat", action="store", dest="redirect_url")
 args = parser.parse_args()
 port = args.port
 ssl = args.ssl
