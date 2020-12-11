@@ -2,7 +2,7 @@
 
 Badrat C2 -- Python server, JScript, HTA, Powershell, and C# implants. HTTP(S) comms. Not a good C2.
 
-Badrat v1.3.5
+Badrat v1.4.5
 
 **Supported Features**
 
@@ -66,4 +66,9 @@ Change C# spawn to create a whole new process instead of just appdomain
 
 Prevent loaded .NET assemblies from calling either Environment.Exit() or ExitProcess() and killing the rat
 
-Modify C# loader stubs to allow other function signatures than the standard `void Main(string args[])` ie: `int wmain(int argc, wchar_t * argv[])`
+**Special Thanks**
+
+* Joe Route (@rowdyjoe)
+* RJ Stallkamp (@rstallkamp)
+
+A decent portion of code was written by them and with their help. Thank you guys.

