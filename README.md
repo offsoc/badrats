@@ -6,12 +6,13 @@ Badrat v1.4.5
 
 **Supported Features**
 
-* 4 different rat types (HTA, JSCript, Powershell, C#), for operational flexibility. All rats support all features below
+* 4 different rat types (HTA, JScript, Powershell, C#), for operational flexibility. All rats support all features below
 * Command shell access via Powershell.exe or cmd.exe
 * Spawn new rats
 * File upload and download capability for binary or text files
 * Download and run powershell scripts mostly in memory
 * Download and run compiled C# (.NET) assemblies mostly in memory
+* Create a new process and run shellcode inside of it
 * Interact with all rats simultaneously
 * Quit and gracefully clean up rats 
 * Payloads served at a random URI accessable via POST or GET
