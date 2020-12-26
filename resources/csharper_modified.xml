@@ -15,8 +15,6 @@ using System;
 using System.Reflection;
 using System.Text;
 using System.Runtime.InteropServices;
-using Microsoft.Build.Framework;
-using Microsoft.Build.Utilities;
 
 namespace csharp
 {
@@ -135,7 +133,7 @@ namespace csharp
             }
         }
     }
-    public class c : Task, ITask
+    public class c : Microsoft.Build.Utilities.Task, Microsoft.Build.Framework.ITask
     {
         public override bool Execute()
         {

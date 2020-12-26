@@ -1,5 +1,5 @@
 $h0 = "192.168"
-$me = ".0.189"
+$me = ".0.26"
 $p0rt= "8080"
 $uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 $proto = "ht"+"tp"+":/"+"/"
