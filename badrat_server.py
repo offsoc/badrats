@@ -455,7 +455,7 @@ def serve_server(port=8080):
         if(ratID not in commands):
             commands[ratID] = ""
             comp.add_tab_item(ratID)
-            pretty_print("[*] New rat checked in: " + colors(ratID) + "\t. . . . . .\t" + datetime.now().strftime("%H:%M:%S, %b %d"))
+            pretty_print("[*] New rat checked in: " + colors(ratID) + "\tat " + datetime.now().strftime("%H:%M:%S, %b %d"))
 
         if("retval" in post_dict.keys()):
             commands[ratID] = ""
@@ -515,13 +515,13 @@ def get_stagers(lhost):
     pretty_print("")
 
 def get_rats(current=""):
-    pretty_print("\n    {:<10}\t{:<4}\t{:<8}\t{:<12}\t{:<15}\t{:<10}".format("implant id", "type", "check-in","username","ip address","hostname"))
-    pretty_print("    ----------\t----\t--------\t--------    \t----------     \t--------")
+    pretty_print("\n    {:<10}\t{:<4}\t{:<8}\t{:<20}\t{:<15}\t{:<10}".format("implant id", "type", "check-in","username","ip address","hostname"))
+    pretty_print("    ----------\t----\t--------\t--------            \t----------     \t--------")
     for ratID, checkin in rats.items():
         if(current == ratID or current == "all"):
-            pretty_print(" {:<2} {:<10}\t{:<4}\t{:<8}\t{:<12}\t{:<15}\t{:<10}".format(colors(">>"), ratID, colors(types[ratID]), colors(checkin), usernames[ratID], ip_addrs[ratID], hostnames[ratID]))
+            pretty_print(" {:<2} {:<10}\t{:<4}\t{:<8}\t{:<20}\t{:<15}\t{:<10}".format(colors(">>"), ratID, colors(types[ratID]), colors(checkin), usernames[ratID], ip_addrs[ratID], hostnames[ratID]))
         else:
-            pretty_print("    {:<10}\t{:<4}\t{:<8}\t{:<12}\t{:<15}\t{:<10}".format(ratID, colors(types[ratID]), colors(checkin), usernames[ratID], ip_addrs[ratID], hostnames[ratID]))
+            pretty_print("    {:<10}\t{:<4}\t{:<8}\t{:<20}\t{:<15}\t{:<10}".format(ratID, colors(types[ratID]), colors(checkin), usernames[ratID], ip_addrs[ratID], hostnames[ratID]))
     pretty_print("")
 
 def remove_rat(ratID):
