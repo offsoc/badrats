@@ -164,7 +164,7 @@ def pretty_print_banner():
     $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
     $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
     $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.6.8 Sharphound works now :D  "`
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.6.9 DPI Aware CSharp Screens "`
     """
     pretty_print(banner)
 
@@ -421,8 +421,9 @@ def serve_server(port=8080):
     app = Flask(__name__)
 
     # Disable annoying console output for GET/POST requests
-    log = logging.getLogger('werkzeug')
-    log.disabled = True
+    if(not verbose):
+        log = logging.getLogger('werkzeug')
+        log.disabled = True
 
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>', methods=['GET'])

