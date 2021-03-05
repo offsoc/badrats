@@ -57,11 +57,12 @@ types = {}
 usernames = {}
 hostnames = {}
 ip_addrs = {}
+notes = {}
 
 # Tab completion stuff -- https://stackoverflow.com/questions/5637124/tab-completion-in-pythons-raw-input
 class Completer(object):
     def __init__(self):
-        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode", "eval"]
+        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode", "eval", "note"]
         self.re_space = re.compile('.*\s+$', re.M)
 
     def add_tab_item(self, item):
@@ -110,7 +111,7 @@ class Completer(object):
             return res
 
     # Register all these completable commands as having special arguments
-    # Completable path argments except 'remove' which autocompletes to the ratID
+    # Completable path argments except 'remove' and 'note' which autocompletes to the ratID
     def complete_upload(self, args):
         return self._complete_path(args[0])
 
@@ -127,6 +128,9 @@ class Completer(object):
         return self._complete_path(args[0])
 
     def complete_remove(self, args):
+        return self._complete_rat(args[0])
+
+    def complete_note(self, args):
         return self._complete_rat(args[0])
 
     def complete(self, text, state):
@@ -542,6 +546,8 @@ def get_rats(current=""):
             pretty_print(" {:<2} {:<10}\t{:<4}\t{:<8}\t{:<20}\t{:<15}\t{:<10}".format(colors(">>"), ratID, colors(types[ratID]), colors(checkin), usernames[ratID], ip_addrs[ratID], hostnames[ratID]))
         else:
             pretty_print("    {:<10}\t{:<4}\t{:<8}\t{:<20}\t{:<15}\t{:<10}".format(ratID, colors(types[ratID]), colors(checkin), usernames[ratID], ip_addrs[ratID], hostnames[ratID]))
+        if(ratID in notes.keys() and notes[ratID] != ""):
+            pretty_print("      L..:>> " + notes[ratID])
     pretty_print("")
 
 def remove_rat(ratID):
@@ -575,6 +581,7 @@ def get_help():
     pretty_print("remove all -- unregisters ALL rats")
     pretty_print("remove <ratID> -- unregisters the specified <ratID>")
     pretty_print("clear -- clear the screen")
+    pretty_print("note -- add a note to a rat")
     pretty_print("")
     pretty_print("Rat commands: -- commands to interact with a badrat rat")
     pretty_print("<command> -- enter shell commands to run on the rat. Uses cmd.exe or powershell.exe depending on rat type")
@@ -650,6 +657,14 @@ if __name__ == "__main__":
                 except:
                     pretty_print("invalid syntax: Use 'remove <ratID>' or 'remove all'")
 
+            elif(str.startswith(inp, "note ")):
+                note_ratID = inp.split(" ")[1]
+                if(note_ratID in rats.keys()):
+                    notes[note_ratID] = ' '.join(inp.split(" ")[2:])
+                else:
+                    pretty_print("Usage: note <ratID> <important note text>")
+                continue
+
             # Clear the screen
             elif(inp == "clear"):
                 os.system("clear")
@@ -687,6 +702,17 @@ if __name__ == "__main__":
                                 get_stagers(lhost)
                             except:
                                 pretty_print("Usage: stagers <LHOST IP or domain name>")
+                            continue
+
+                        elif(str.startswith(inp, "note ")):
+                            try:
+                                maybe_ratID = inp.split(" ")[1]
+                                if(maybe_ratID in rats.keys()):
+                                    notes[maybe_ratID] = ' '.join(inp.split(" ")[2:])
+                                else:
+                                    notes[ratID] = ' '.join(inp.split(" ")[1:])
+                            except:
+                                pretty_print("Usage: note [ratID] <important note text>")
                             continue
 
                         elif(inp == "quit"):
