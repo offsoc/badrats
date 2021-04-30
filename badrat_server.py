@@ -170,7 +170,7 @@ def pretty_print_banner():
     $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
     $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
     $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.6.13 Speak no eeeeeeeval     "`
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.6.14 \\\\UNC\\upload\\download  "`
     """
     pretty_print(banner)
 
@@ -804,7 +804,7 @@ if __name__ == "__main__":
                             try:
                                 localpath = inp.split(" ")[1]
                                 remotepath = inp.split(" ")[2] #BAD -- does not account for remote paths that contain space: "C:\Program Files\whatever.txt"
-                                remotepath = remotepath.replace("\\", "\\\\")
+                                # remotepath = remotepath.replace("\\", "\\\\") # Might not actually need to replace with double backslashes. Removed to allow \\UNC\paths
                                 inp = "up " + encode_file(localpath) + " " + remotepath
                             except:
                                 pretty_print("[!] Could not open file " + colors(localpath) + " for reading or no remote path specified")
