@@ -242,19 +242,22 @@ def colors(value):
         else:
             return(UNDERLINE + value + ENDC)
 
+def log_console(text):
+    # Open a file for console logging
+    with open("logs/console.log", 'a') as fd:
+        fd.write(text + os.linesep)
+
 # Get the current main thread to identify notifications vs interactive text
 main_thread_id = threading.current_thread().ident
 prompt = colors("Badrat") + " //> "
 def pretty_print(text, redraw = False):
-    # Open a file for console logging
-    with open("logs/console.log", 'a') as fd:
-        sys.stdout.write("\033[1K\r" + text + os.linesep)
-        fd.write("\033[1K\r" + text + os.linesep)
+    sys.stdout.write("\033[1K\r" + text + os.linesep)
+    log_console(text)
+    sys.stdout.flush()
+    if redraw or threading.current_thread().ident != main_thread_id:
+        sys.stdout.write(prompt + readline.get_line_buffer())
+        log_console(prompt + readline.get_line_buffer())
         sys.stdout.flush()
-        if redraw or threading.current_thread().ident != main_thread_id:
-            sys.stdout.write(prompt + readline.get_line_buffer())
-            fd.write(prompt + readline.get_line_buffer())
-            sys.stdout.flush()
 
 # Page sent to "unauthorized" users of the http listener
 def default_page():
@@ -646,6 +649,7 @@ if __name__ == "__main__":
         try:
             prompt = colors("Badrat") + " //> "
             inp = input(prompt)
+            log_console(prompt + inp)
 
             # Check if input has a trailing space, like 'exit ' instead of 'exit' -- for tab completion
             inp = inp.rstrip()
@@ -701,6 +705,7 @@ if __name__ == "__main__":
                 while True:
                     prompt = colors(ratID) + " \\\\> "
                     inp = input(prompt)
+                    log_console(prompt + inp)
 
                     if(inp != ""):
                         inp = inp.rstrip()
