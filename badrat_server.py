@@ -60,6 +60,7 @@ hostnames = {}
 ip_addrs = {}
 notes = {}
 
+
 # Tab completion stuff -- https://stackoverflow.com/questions/5637124/tab-completion-in-pythons-raw-input
 class Completer(object):
     def __init__(self):
@@ -245,11 +246,15 @@ def colors(value):
 main_thread_id = threading.current_thread().ident
 prompt = colors("Badrat") + " //> "
 def pretty_print(text, redraw = False):
-    sys.stdout.write("\033[1K\r" + text + os.linesep)
-    sys.stdout.flush()
-    if redraw or threading.current_thread().ident != main_thread_id:
-        sys.stdout.write(prompt + readline.get_line_buffer())
+    # Open a file for console logging
+    with open("logs/console.log", 'a') as fd:
+        sys.stdout.write("\033[1K\r" + text + os.linesep)
+        fd.write("\033[1K\r" + text + os.linesep)
         sys.stdout.flush()
+        if redraw or threading.current_thread().ident != main_thread_id:
+            sys.stdout.write(prompt + readline.get_line_buffer())
+            fd.write(prompt + readline.get_line_buffer())
+            sys.stdout.flush()
 
 # Page sent to "unauthorized" users of the http listener
 def default_page():
