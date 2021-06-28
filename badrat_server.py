@@ -443,6 +443,7 @@ def serve_server(port=8080):
 
     # Disable annoying console output for GET/POST requests
     if(not verbose):
+        os.environ['WERKZEUG_RUN_MAIN'] = 'true'
         log = logging.getLogger('werkzeug')
         log.disabled = True
 
