@@ -530,7 +530,7 @@ def serve_server(port=8080):
         pretty_print("[*] Certificate file: " + colors("cert/cert.pem") +" Private key file: " + colors("cert/privkey.pem") + "\n\n")
         app.run(host="0.0.0.0", port=port, ssl_context=("cert/cert.pem", "cert/privkey.pem"))
     else:
-        pretty_print("[*] Starting " + colors("HTTP") + " listener on port " + str(port) + "\n\n")
+        pretty_print("[*] Starting " + colors("HTTP") + " listener on port " + str(port))
         app.run(host="0.0.0.0", port=port)
 
 def get_stagers(lhost):
