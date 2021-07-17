@@ -500,8 +500,8 @@ def serve_server(port=8080):
 
         if("retval" in post_dict.keys()):
             commands[ratID] = ""
-            pretty_print("\n[*] Results from rat " + colors(str(post_dict['id'])) + ":\n")
-            pretty_print(base64.b64decode(post_dict['retval']).decode('utf-8'))
+            pretty_print("[*] Results from rat " + colors(str(post_dict['id'])) + ":\n")
+            pretty_print('\001\033[1;97m\002' + base64.b64decode(post_dict['retval']).decode('utf-8') + '\001\033[0m\002')
 
         if("dl" in post_dict.keys()):
             commands[ratID] = "" # Reset command back to "" (blank) after we finish processing the results
