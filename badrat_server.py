@@ -604,7 +604,7 @@ def get_help():
     pretty_print("back -- backgrounds the current rat and goes to the main menu")
     pretty_print("remove all -- unregisters ALL rats")
     pretty_print("remove <ratID> -- unregisters the specified <ratID>")
-    pretty_print("clear -- clear the screen")
+    pretty_print("clear -- clear all rat command queues (useful for stopping accidental commands)")
     pretty_print("note -- add a note to a rat")
     pretty_print("")
     pretty_print("Rat commands: -- commands to interact with a badrat rat")
@@ -694,9 +694,9 @@ if __name__ == "__main__":
                     pretty_print("Usage: note <ratID> <important note text>")
                 continue
 
-            # Clear the screen
             elif(inp == "clear"):
-                os.system("clear")
+                commands = commands.fromkeys(commands, "")
+                pretty_print("Cleared all rat command queues!")
 
             # Enter rat specific command prompt
             elif(inp in rats.keys() or inp == "all"):
@@ -719,7 +719,8 @@ if __name__ == "__main__":
                             continue
 
                         elif(inp == "clear"):
-                            os.system("clear")
+                            commands = commands.fromkeys(commands, "")
+                            pretty_print("Cleared all rat command queues!")
                             continue
 
                         elif(inp == "help"):
