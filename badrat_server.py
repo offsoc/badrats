@@ -290,7 +290,7 @@ def send_ratcode(ratID=None, ratType=None, ip_addr=None):
             return(default_page())
 
     elif(ratID): # Spawn new rat from current rat
-        pretty_print("\n[*] sending " + colors(types[ratID]) + " ratcode to " + colors(ratID))
+        pretty_print("[*] Sending " + colors(types[ratID]) + " ratcode to " + colors(ratID))
         fd = open(os.getcwd() + "/rats/badrat." + types[ratID], 'r')
         ratcode = fd.read()
         ratcode = base64.b64encode(ratcode.encode('utf-8')).decode('utf-8')
