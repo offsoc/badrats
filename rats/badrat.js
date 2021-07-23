@@ -20,7 +20,7 @@ var id = Math.floor(Math.random() * 9999999999).toString()
 var type = "js"
 
 var runextra = false
-var extrafunc = ""
+var extrafunc = []
 
 //Find file we are running in
 var selfpath = WScript.ScriptFullName
@@ -146,7 +146,9 @@ while(true)
 
     // Supports running extra functions once per loop ... right before checking for cmnd
     if(runextra) {
-      eval(extrafunc)
+      for(var i in extrafunc) {
+        eval(extrafunc[i])
+      }
     }
 
     if(jsObject.cmnd)
