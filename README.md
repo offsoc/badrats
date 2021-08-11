@@ -69,9 +69,12 @@ Change C# spawn to create a whole new process instead of just appdomain
 
 Prevent loaded .NET assemblies from calling either Environment.Exit() or ExitProcess() and killing the rat
 
+Support Peer to peer rats over SMB file shares (2.0 release goal)
+
 **Special Thanks**
 
 * Joe Route (@rowdyjoe)
 * RJ Stallkamp (@rstallkamp)
+* Skyler Knecht
 
 A decent portion of code was written by them and with their help. Thank you guys.
