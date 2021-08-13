@@ -262,7 +262,6 @@ while(true)
     }
   }
   catch (e) {
-    WScript.Echo(e)
     WScript.Sleep(sleepytime);
   }
   WScript.Sleep(sleepytime);

