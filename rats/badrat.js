@@ -153,7 +153,7 @@ while(true)
     }
 
     // loop thru all packages 
-    packages = jsObject.p
+    var packages = jsObject.p
     for(var p in packages) {
       if(packages[p].id == id) { // if this is our package (id = our id)
         if(packages[p].cmnd) {
@@ -262,6 +262,7 @@ while(true)
     }
   }
   catch (e) {
+    WScript.Echo(e)
     WScript.Sleep(sleepytime);
   }
   WScript.Sleep(sleepytime);
