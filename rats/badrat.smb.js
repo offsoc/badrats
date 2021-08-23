@@ -1,5 +1,5 @@
 //Define variables
-var home = 'C:\\test3.txt' // UNC or local path. Send and receive data through this file
+var home = 'C:\\users\\kclark\\desktop\\test12.txt' // UNC or local path. Send and receive data through this file
 var sleepytime = 2000 //in milliseconds
 
 var runner = new ActiveXObject("WScript.Shell")
