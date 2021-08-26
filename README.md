@@ -2,22 +2,11 @@
 
 Badrat C2 -- Python server, JScript, HTA, Powershell, and C# implants. HTTP(S) comms. Not a good C2.
 
-Badrat v1.6.15
+Badrat v2.0.-1
 
 Requires Python 3.7 or higher
 
-**Supported Features**
-
-* 4 different rat types (HTA, JScript, Powershell, C#), for operational flexibility. All rats support all features below
-* Command shell access via Powershell.exe or cmd.exe
-* Spawn new rats
-* File upload and download capability for binary or text files
-* Download and run powershell scripts mostly in memory
-* Download and run compiled C# (.NET) assemblies mostly in memory
-* Create a new process and run shellcode inside of it
-* Interact with all rats simultaneously
-* Quit and gracefully clean up rats 
-* Payloads served at a random URI accessable via POST or GET
+For help setting up Badrat and other information, read: https://gitlab.com/KevinJClark/badrats/-/wikis/Badrats-Help#getting-started
 
 Read the blog post here: https://henpeebin.com/kevin/blog/badrats-c2-initial-access-payloads.html
 
@@ -53,7 +42,7 @@ To do:
 
 ~~Add ability to load Powershell scripts (like scriptimport/scriptcmd)~~
 
-Fix powershell errors not showing up with psh
+~~Fix powershell errors not showing up with psh~~
 
 ~~Add psh to hta rat (I'm lazy)~~
 
@@ -69,7 +58,7 @@ Change C# spawn to create a whole new process instead of just appdomain
 
 Prevent loaded .NET assemblies from calling either Environment.Exit() or ExitProcess() and killing the rat
 
-Support Peer to peer rats over SMB file shares (2.0 release goal)
+~~Support Peer to peer rats over SMB file shares (2.0 release goal)~~
 
 **Special Thanks**
 
