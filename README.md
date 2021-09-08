@@ -32,7 +32,7 @@ Running a shell command and downloading an lsass minidump:
 
 ![image](/uploads/2bba67c073d5744cbebd24f60c8e891a/image.png)
 
-Linking a C# rat to a JScript rat and executing an assembly
+Linking a Jscript rat to a C# rat and executing an assembly
 
 ![image](/uploads/e244425daf0f5c069703c4a238578a79/image.png)
 
