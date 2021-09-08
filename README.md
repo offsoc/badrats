@@ -2,13 +2,13 @@
 
 Badrat C2 -- Python server, JScript, HTA, Powershell, and C# implants. HTTP(S) comms. Not a good C2.
 
-Badrat v2.0.-1
+Badrat v2.0.0 (beta)
 
 Requires Python 3.7 or higher
 
 For help setting up Badrat and other information, read: https://gitlab.com/KevinJClark/badrats/-/wikis/Badrats-Help#getting-started
 
-Read the blog post here: https://henpeebin.com/kevin/blog/badrats-c2-initial-access-payloads.html
+Read the blog post here: https://henpeebin.com/kevin/blog/badrats-c2-initial-access-payloads.html (temporarily offline)
 
 ![image](/uploads/55cacc2c41463365ee6b86171b4ce5cc/image.png)
 

