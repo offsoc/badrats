@@ -1,6 +1,6 @@
 # Badrats
 
-Badrat C2 -- Python server, JScript, HTA, Powershell, and C# implants. HTTP(S) comms. Not a good C2.
+Badrat C2 -- Python server, JScript, HTA, Powershell, and C# implants. HTTP(S) and SMB comms. Not a good C2.
 
 Badrat v2.0.0 (beta)
 
@@ -30,9 +30,9 @@ Spawning a new JScript rat
 
 Running a shell command and downloading an lsass minidump:
 
-![image](/uploads/2bba67c073d5744cbebd24f60c8e891a/image.png)
+![image](/uploads/dc969beaab3c738b00d1b07730af63a1/image.png)
 
-Linking a Jscript rat to a C# rat and executing an assembly
+Linking a JScript rat to a C# rat and executing an assembly
 
 ![image](/uploads/e244425daf0f5c069703c4a238578a79/image.png)
 
