@@ -10,25 +10,33 @@ For help setting up Badrat and other information, read: https://gitlab.com/Kevin
 
 Read the blog post here: https://henpeebin.com/kevin/blog/badrats-c2-initial-access-payloads.html (temporarily offline)
 
-![image](/uploads/55cacc2c41463365ee6b86171b4ce5cc/image.png)
+![image](/uploads/cbfcd07a4fd7e45f041ae767a0140fee/image.png)
 
-Viewing current rats and running a command
+Viewing current rats
 
-![image](/uploads/c9ac3ed3548edaf8550f007e487bf1aa/image.png)
+![image](/uploads/3e8994413ee9361481a8ff3e716808f4/image.png)
 
-Running a Powershell script on an HTA rat with msbuild.exe
+Running a Powershell script on a JScript rat
 
-![image](/uploads/2704d05148ed58402a8a3509da693cac/image.png)
+![image](/uploads/eff101c935bad844f983c3b26c798b58/image.png)
 
-Running a C Sharp program on a js rat using the `cs` keyword
+Executing a .NET assembly on an HTA rat
 
-![image](/uploads/be43bcb34c075851dd77da0da35eaffb/image.png)
+![image](/uploads/7591708ca4153e19eeb6ea60fc5c6348/image.png)
 
-Downloading an lsass minidump:
+Spawning a new JScript rat
 
-![image](/uploads/0947aaeb26deb423f4ba5de43c39fe31/image.png)
+![image](/uploads/34f5577456977583be9c5da7be7bf281/image.png)
 
-![image](/uploads/a82934014ffc695d8224a59c0036a7bc/image.png)
+Running a shell command and downloading an lsass minidump:
+
+![image](/uploads/2bba67c073d5744cbebd24f60c8e891a/image.png)
+
+Linking a C# rat to a JScript rat and executing an assembly
+
+![image](/uploads/e244425daf0f5c069703c4a238578a79/image.png)
+
+
 
 To do:
 
