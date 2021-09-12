@@ -187,7 +187,7 @@ def pretty_print_banner():
     $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
     $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
     $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v2.0.0  Imagine the Graph     "`
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v2.0.1 Imagine the Graph       "`
     """
     pretty_print(banner)
 
@@ -522,6 +522,10 @@ def serve_server(port=8080):
             pretty_print("[v] GET request from non-rat client requested path /" + path)
         return(default_page())
 
+    @app.route('/static/<path:name>', defaults={'path': ''})
+    def serve_static(name):
+        return send_from_directory(app.config['UPLOAD_FOLDER'], name, as_attachment=True)
+
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>', methods=['POST'])
     def badrat_comms(path):
@@ -616,6 +620,7 @@ def serve_server(port=8080):
             pretty_print("[v] Server sends data to rat " + colors(ratID) + ": " + json.dumps(return_dict))
         return(htmlify(json.dumps(return_dict)))
 
+
     if(verbose):
         pretty_print("[v] Starting badrat in verbose mode. Prepare to have your screen flooded.")
 
@@ -623,6 +628,8 @@ def serve_server(port=8080):
         pretty_print("[*] Ad-Hoc ratcode servable from path: " + colors("/" + rand_path + "/b.<rat_type>") + " via GET or POST")
     else:
         pretty_print("[!] Whoah! You chose to disable hosted payload stages. Payload staging won't work.")
+
+    pretty_print("[*] Serving static content from " + colors("static") + " at path " + colors("/static/"))
 
     # Run the listener. Choose between HTTP and HTTPS based on if --ssl was specfied
     if(ssl):
