@@ -146,6 +146,8 @@ class Completer(object):
         return self._complete_path(args[0])
 
     def complete_shellcode(self, args):
+        if(args[0].isdigit() or args[0] == "local"):
+            return self._complete_path(args[1])
         return self._complete_path(args[0])
 
     def complete_eval(self, args):
@@ -160,6 +162,11 @@ class Completer(object):
     def complete_unlink(self, args):
         return self._complete_unlink(args[0])
 
+    def complete_donut_exec(self, args):
+        if(args[0].isdigit() or args[0] == "local"):
+            return self._complete_path(args[1])
+        return self._complete_path(args[0])
+
     def complete(self, text, state):
         "Generic readline completion entry point."
         buffer = readline.get_line_buffer()
@@ -173,7 +180,7 @@ class Completer(object):
         # resolve command to the implementation function
         cmd = line[0].strip()
         if cmd in self.tab_cmds:
-            impl = getattr(self, 'complete_%s' % cmd)
+            impl = getattr(self, 'complete_%s' % cmd.replace("-", "_")) #replace dashes with underscores
             args = line[1:]
             if args:
                 return (impl(args) + [None])[state]
