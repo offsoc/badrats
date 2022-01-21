@@ -715,11 +715,11 @@ def serve_server(port=8080):
 
     # Run the listener. Choose between HTTP and HTTPS based on if --ssl was specfied
     if(ssl):
-        pretty_print("[*] Starting GNOMEr server (" + colors("HTTPS") + ")  on port " + str(port))
+        pretty_print("[*] Starting GNOME server (" + colors("HTTPS") + ")  on port " + str(port))
         pretty_print("[*] Certificate file: " + colors("cert/cert.pem") +" Private key file: " + colors("cert/privkey.pem") + "\n\n")
         app.run(host="0.0.0.0", port=port, ssl_context=("cert/cert.pem", "cert/privkey.pem"))
     else:
-        pretty_print("[*] Starting GNOMEr server (" + colors("HTTP") + ") on port " + str(port))
+        pretty_print("[*] Starting GNOME server (" + colors("HTTP") + ") on port " + str(port))
         app.run(host="0.0.0.0", port=port)
 
 def get_stagers(lhost):
