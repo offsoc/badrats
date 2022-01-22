@@ -3,12 +3,14 @@
 # import from resources/ekript.py
 from resources import ekript
 
+import sys
 # Check for existance of 'donut-python' and 'flask'
 try:
     from flask import Flask, request, redirect
     import donut
 except ImportError as ie:
     print("Error: Libraries are missing -> \r\n{}".format(ie))
+    sys.exit(1)
 
 from datetime import datetime
 from itertools import cycle
@@ -23,7 +25,6 @@ import string
 import base64
 import time
 import json
-import sys
 import os
 import re
 
