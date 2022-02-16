@@ -74,7 +74,7 @@ links = {}
 # Tab completion stuff -- https://stackoverflow.com/questions/5637124/tab-completion-in-pythons-raw-input
 class Completer(object):
     def __init__(self):
-        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode", "donut-exec", "eval", "note", "set-msbuild-path", "set-shellcode-process", "link", "unlink", "exec", "gnomes"]
+        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode", "donut-exec", "eval", "note", "set-msbuild-path", "set-shellcode-process", "link", "unlink", "exec"]
         self.re_space = re.compile('.*\s+$', re.M)
 
     def add_tab_item(self, item):
@@ -203,7 +203,7 @@ def pretty_print_banner():
     $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
     $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
     $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v2.1.🧙 Gnot a Gnoblin Edition  "`
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v2.1.2 Injection Junkie        "`
     """
     pretty_print(banner)
 
@@ -675,7 +675,7 @@ def serve_server(port=8080):
                 commands[ratID] = ""
                 links[ratID] = ["None"]
                 comp.add_tab_item(ratID)
-                pretty_print("[*] (" + datetime.now().strftime("%H:%M:%S, %b %d") + ") Host " + colors(hostname) + " was gnomed (by gnome " + colors(ratID) + ")")
+                pretty_print("[*] (" + datetime.now().strftime("%H:%M:%S, %b %d") + ") New rat checked in: " + colors(ratID))
 
     
             if("retval" in package.keys()):
@@ -715,11 +715,11 @@ def serve_server(port=8080):
 
     # Run the listener. Choose between HTTP and HTTPS based on if --ssl was specfied
     if(ssl):
-        pretty_print("[*] Starting GNOMEr server (" + colors("HTTPS") + ")  on port " + str(port))
+        pretty_print("[*] Starting " + colors("HTTPS") + " listener on port " + str(port))
         pretty_print("[*] Certificate file: " + colors("cert/cert.pem") +" Private key file: " + colors("cert/privkey.pem") + "\n\n")
         app.run(host="0.0.0.0", port=port, ssl_context=("cert/cert.pem", "cert/privkey.pem"))
     else:
-        pretty_print("[*] Starting GNOMEr server (" + colors("HTTP") + ") on port " + str(port))
+        pretty_print("[*] Starting " + colors("HTTP") + " listener on port " + str(port))
         app.run(host="0.0.0.0", port=port)
 
 def get_stagers(lhost):
@@ -756,7 +756,7 @@ def get_stagers(lhost):
     pretty_print("")
 
 def get_rats(current=""):
-    pretty_print("\n    {:<10}\t{:<4}\t{:<8}   {:<10}\t{:<20}\t{:<15}\t{:<15}\t{:<6}".format("gnome id  ","type","check-in","upstream","username","ip address","hostname","links"))
+    pretty_print("\n    {:<10}\t{:<4}\t{:<8}   {:<10}\t{:<20}\t{:<15}\t{:<15}\t{:<6}".format("implant id","type","check-in","upstream","username","ip address","hostname","links"))
     pretty_print("    ----------\t----\t--------   --------\t--------               \t----------     \t--------\t-----")
     for ratID, checkin in rats.items():
         if(current == ratID or current == "all"):
@@ -885,7 +885,7 @@ if __name__ == "__main__":
                     pretty_print("Usage: stagers <LHOST IP or domain name>")
 
             # View rats, their types, and their latest checkin times
-            elif(inp == "agents" or inp == "rats" or inp == "implants" or inp == "sessions" or inp == "gnomes"):
+            elif(inp == "agents" or inp == "rats" or inp == "implants" or inp == "sessions"):
                 get_rats()
 
             # Remove rats -- either by ratID or all
