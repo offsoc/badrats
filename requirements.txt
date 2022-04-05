@@ -1,2 +1,3 @@
 flask
 donut-shellcode
+werkzeug==2.0.0
