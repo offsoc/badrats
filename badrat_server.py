@@ -3,7 +3,15 @@
 # import from resources/ekript.py
 from resources import ekript
 
-from flask import Flask, request, redirect
+import sys
+# Check for existance of 'donut-python' and 'flask'
+try:
+    from flask import Flask, request, redirect
+    import donut
+except ImportError as ie:
+    print("Error: Libraries are missing -> \r\n{}".format(ie))
+    sys.exit(1)
+
 from datetime import datetime
 from itertools import cycle
 from pathlib import Path
@@ -13,11 +21,10 @@ import argparse
 import readline
 import logging
 import random
+import string
 import base64
-import donut
 import time
 import json
-import sys
 import os
 import re
 
@@ -52,7 +59,7 @@ default_shellcode_process = "C:\\Windows\\System32\\SearchProtocolHost.exe" # De
 shellcode_process = default_shellcode_process
 
 supported_types = ["c", "c#", "js", "ps1", "hta"]
-alpha = "abcdefghijklmnopqrstuvwxyz"
+alpha = string.ascii_lowercase # Grab the alphabet in lowercase format 
 
 # Generate a random path to serve payloads off of
 rand_path = ''.join(random.choice(alpha) for choice in range(10)) 
