@@ -5,18 +5,68 @@ import requests
 from urllib.parse import urlparse
 from datetime import datetime
 
-# Azure functions have a default HTTP route of http://<APP_NAME>/azurewebsites.com/api/<FUNCTION_NAME>
-# We want to change this HTTP route to accept *all* routes hitting our azurewebsite domain since we
+# Azure functions have a default HTTP route of http://<APP_NAME>/azurewebsites.net/api/<FUNCTION_NAME>
+# We want to change this HTTP route to accept *all* routes hitting our *.azurewebsites.net domain since we
 # need to pass along the requested URI to the backend host. In order to change these default settings,
 # We need to change the ../host.json and ./function.json files.
 # In host.json, specify "routePrefix": "" to remove the /api/
 # and in function.json, specify "route": "{*path}" to allow wildcard routing.
 
-# Notes on deployment: I could not figure out this AzureWebJobsStorage thing despite reading multiple
-# articles on the topic. I keep getting the following error:
-# 'br-redirector' app is missing AzureWebJobsStorage app setting. That setting is required for publishing consumption linux apps.
-#
-# Submit an MR or shoot me a message if you figure out how to fix this error! :)
+# Follow the instructions here to set up a new Azure Function. Azure Function setup is a lot more involved than AWS Lambda.
+# https://docs.microsoft.com/en-us/azure/azure-functions/create-first-function-cli-python?tabs=azure-cli%2Cbash%2Cbrowser
+
+# Required configuration files are listed below in full you can paste into the correct spots when
+# you deploy your Azure Function.
+
+## $ cat requirements.txt
+# #Do not include azure-functions-worker as it may conflict with the Azure Functions platform
+# azure-functions
+# requests
+
+## $ cat host.json
+# {
+#   "version": "2.0",
+#   "extensions": {
+#     "http": {
+#       "routePrefix": ""
+#     }
+#   },
+#   "logging": {
+#     "applicationInsights": {
+#       "samplingSettings": {
+#         "isEnabled": true,
+#         "excludedTypes": "Request"
+#       }
+#     }
+#   },
+#   "extensionBundle": {
+#     "id": "Microsoft.Azure.Functions.ExtensionBundle",
+#     "version": "[2.*, 3.0.0)"
+#   }
+# }
+
+## $ cat br-redirector/function.json
+# {
+#   "scriptFile": "__init__.py",
+#   "bindings": [
+#     {
+#       "authLevel": "Anonymous",
+#       "route": "{*path}",
+#       "type": "httpTrigger",
+#       "direction": "in",
+#       "name": "req",
+#       "methods": [
+#         "get",
+#         "post"
+#       ]
+#     },
+#     {
+#       "type": "http",
+#       "direction": "out",
+#       "name": "$return"
+#     }
+#   ]
+# }
 
 # Change this backend host to whatever your domain is
 backend_host = "https://example-c2-domain.com"
