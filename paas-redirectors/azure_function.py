@@ -5,7 +5,7 @@ import requests
 from urllib.parse import urlparse
 from datetime import datetime
 
-# Azure functions have a default HTTP route of http://<APP_NAME>/azurewebsites.net/api/<FUNCTION_NAME>
+# Azure functions have a default HTTP URL (route) of http://<APP_NAME>.azurewebsites.net/api/<FUNCTION_NAME>
 # We want to change this HTTP route to accept *all* routes hitting our *.azurewebsites.net domain since we
 # need to pass along the requested URI to the backend host. In order to change these default settings,
 # We need to change the ../host.json and ./function.json files.
