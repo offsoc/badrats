@@ -52,7 +52,7 @@ redirect_url = args.redirect_url
 if(not str.startswith("http://", redirect_url) or not str.startswith("https://", redirect_url)):
     redirect_url = "http://" + redirect_url
 
-default_msbuild_path = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild"
+default_msbuild_path = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild.exe"
 msbuild_path = default_msbuild_path
 
 default_shellcode_process = "C:\\Windows\\System32\\SearchProtocolHost.exe" # Default sacrificial process for creating a new process then injecting shellcode
