@@ -6,6 +6,8 @@ Badrat C2 -- Python server, JScript, HTA, Powershell, and C# implants. HTTP(S) a
 
 Badrat v2.1.2 (beta)
 
+Written by Kevin Clark -- Tweet me your implant development opinions at [@GuhnooPlusLinux](https://twitter.com/GuhnooPlusLinux)
+
 Requires Python 3.7 or higher
 
 For help setting up Badrat and other information, read: https://gitlab.com/KevinJClark/badrats/-/wikis/Badrats-Help#getting-started
