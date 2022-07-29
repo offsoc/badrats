@@ -1,5 +1,4 @@
 from struct import pack, calcsize
-from binascii import hexlify
 
 def bof_pack(fstring: str, args: list):
     # Most code taken from: https://github.com/trustedsec/COFFLoader/blob/main/beacon_generate.py
@@ -80,6 +79,9 @@ def bof_pack(fstring: str, args: list):
 if __name__ == "__main__":
    # Interactive method to use bof_pack()
    import sys
+   from binascii import hexlify
+   from base64 import b64encode
+
    if(len(sys.argv) < 3 or "-h" in sys.argv or "--help" in sys.argv):
        print("bof_pack: pack arguments in a format suitable to send to a beacon-object-file")
        print("Usage: bof_pack.py <format_string> <arg1> [arg2] [arg3] [...]")
@@ -88,7 +90,8 @@ if __name__ == "__main__":
        try:
            packed = bof_pack(fstring=sys.argv[1], args=sys.argv[2:])
            print(" ".join(sys.argv[2:]) + " (\"" + sys.argv[1] + "\")")
-           print("\--> " + hexlify(packed).decode('utf-8'))
+           print("-hex-> " + hexlify(packed).decode('utf-8'))
+           print("-b64-> " + b64encode(packed).decode('utf-8'))
        except Exception as e:
            print("Exception occured packing your data:")
            print(e)
