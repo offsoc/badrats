@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-# import from resources/ekript.py
+# import from resources/
 from resources import ekript
+from resources import bof_pack
 
 import sys
 # Check for existance of 'donut-python' and 'flask'
@@ -81,7 +82,7 @@ links = {}
 # Tab completion stuff -- https://stackoverflow.com/questions/5637124/tab-completion-in-pythons-raw-input
 class Completer(object):
     def __init__(self):
-        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode", "donut-exec", "eval", "note", "set-msbuild-path", "set-shellcode-process", "link", "unlink", "exec"]
+        self.tab_cmds = ['all', 'rats', 'download', 'upload', 'psh', 'csharp', 'spawn', 'quit', 'back', 'exit', 'help', 'remove', 'clear', 'stagers', "shellcode", "donut-exec", "eval", "note", "set-msbuild-path", "set-shellcode-process", "link", "unlink", "exec", "bof"]
         self.re_space = re.compile('.*\s+$', re.M)
 
     def add_tab_item(self, item):
@@ -158,6 +159,9 @@ class Completer(object):
         return self._complete_path(args[0])
 
     def complete_eval(self, args):
+        return self._complete_path(args[0])
+
+    def complete_bof(self, args):
         return self._complete_path(args[0])
 
     def complete_remove(self, args):
@@ -1019,6 +1023,35 @@ if __name__ == "__main__":
                                 pretty_print("[!] Could not open file " + colors(filepath) + " for reading or other unexpected error occured")
                                 print(e.message)
                                 continue
+
+                        elif(str.startswith(inp, "bof ")):
+                            if(types[ratID] != "nim"):
+                                print("[!] Nim is the only language capable of executing BOFS, sorry!")
+                                continue
+                            if(len(inp) < 2):
+                                print("bof - run a Beacon Object File inside a Nim implant")
+                                print("Usage: bof <bof_file.x84.o> [format-string] [bof-args] [...]")
+                                continue
+                            bof_file = inp.split(" ")[1]
+                            try:
+                                with open(bof_file, "rb") as fd:
+                                    bofbytes = fd.read()
+                            except Exception as e:
+                                pretty_print("[!] Could not open file " + colors(bof_file) + " for reading or other unexpected error occured")
+                                print(e)
+                                continue
+                            if(len(inp.split(" ")) > 3): # There are arguments, let's pack them up
+                                try:
+                                    fstring = inp.split(" ")[2]
+                                    bof_args = inp.split(" ")[3:] # This does not account for spaces. BOF args with spaces in them won't work. Fix this later
+                                    packed = bof_pack.bof_pack(fstring, bof_args)
+                                    inp = "bof " + base64.b64encode(bofbytes).decode('utf-8') + " " + base64.b64encode(packed).decode('utf-8')
+                                except Exception as e:
+                                    pretty_print("[!] Could not bof_pack arguments successfully:")
+                                    print(e)
+                                    continue
+                            else:
+                                inp = "bof " + base64.b64encode(bofbytes).decode('utf-8')
 
                         elif(str.startswith(inp, "donut-exec ")):
                             if(types[ratID] == "ps1"):
