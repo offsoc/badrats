@@ -54,11 +54,14 @@ def bof_pack(fstring: str, args: list):
         buffer += pack(fmt, len(b)+1, b)
         size += calcsize(fmt)
 
+    if(len(fstring) != len(args)):
+        raise Exception(f"Format string length must be the same as argument length: fstring:{len(fstring)}, args:{len(args)}")
+
     bad_char_exception = "Invalid character in format string: "
     # pack each arg into the buffer
     for i,c in enumerate(fstring):
         if(c == "b"):
-            with open("rb", args[i]) as fd:
+            with open(args[i], "rb") as fd:
                 addbinary(fd.read())
         elif(c == "i"):
             addint(args[i])
