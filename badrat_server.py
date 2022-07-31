@@ -599,7 +599,6 @@ def serve_server(port=8080):
 
     # Disable annoying console output for GET/POST requests
     if(not verbose):
-        os.environ['WERKZEUG_RUN_MAIN'] = 'true'
         log = logging.getLogger('werkzeug')
         log.disabled = True
 
@@ -1028,7 +1027,7 @@ if __name__ == "__main__":
                             if(types[ratID] != "nim"):
                                 print("[!] Nim is the only language capable of executing BOFS, sorry!")
                                 continue
-                            if(len(inp) < 2):
+                            if(len(inp.split(' ')) < 2 or len(inp.split(' ')) == 3):
                                 print("bof - run a Beacon Object File inside a Nim implant")
                                 print("Usage: bof <bof_file.x84.o> [format-string] [bof-args] [...]")
                                 continue
@@ -1122,3 +1121,4 @@ if __name__ == "__main__":
                             commands[ratID] = inp
         except KeyboardInterrupt:
             pretty_print("[!] Caught Ctrl+C. Type 'exit' to quit badrat")
+
