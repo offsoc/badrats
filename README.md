@@ -74,8 +74,9 @@ Prevent loaded .NET assemblies from calling either Environment.Exit() or ExitPro
 
 **Special Thanks**
 
-* Joe Route (@rowdyjoe)
-* RJ Stallkamp (@rstallkamp)
-* Skyler Knecht
+* Forrest Kasler (@FKasler)
+* Joe Route (@r0wdyjoe)
+* RJ Stallkamp (@Z3rO_C00L)
+* Skyler Knecht (@skylerknecht)
 
 A decent portion of code was written by them and with their help. Thank you guys.
