@@ -942,8 +942,9 @@ if __name__ == "__main__":
                         if(inp == "back" or inp == "exit"):
                             break
 
-                        if(inp in rats.keys()):
+                        if(inp in rats.keys() or inp == "all"):
                             ratID = inp
+                            pretty_print("[*] Switching interaction to rat " + colors(ratID))
                             prompt = get_prompt(ratID)
                             continue
 
