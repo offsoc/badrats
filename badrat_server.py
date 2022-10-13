@@ -851,6 +851,13 @@ def get_help():
     pretty_print("All assemblies run with \"csharp\" must be compiled with a public Main method and a public class that contains Main")
     pretty_print("The longer the chain of rats, the longer it takes for a send/receive round trip. Formula = (2 * n * d) where n = number of rats in the chain, and d = delay/sleep time.\n")
 
+def get_prompt(ratID):
+    if(ratID != "all" and upstream[ratID] != "<direct>"):
+        prompt = colors(str(upstream[ratID])) + " <-- " + colors(ratID) + " \\\\> "
+    else:
+       prompt = colors(ratID) + " \\\\> "
+    return prompt
+
 if __name__ == "__main__":
     # Start the Flask server
     server = threading.Thread(target=serve_server, kwargs=dict(port=port), daemon=True)
@@ -922,10 +929,7 @@ if __name__ == "__main__":
             # Enter rat specific command prompt
             elif(inp in rats.keys() or inp == "all"):
                 ratID = inp
-                if(ratID != "all" and upstream[ratID] != "<direct>"):
-                    prompt = colors(str(upstream[ratID])) + " <-- " + colors(ratID) + " \\\\> "
-                else:
-                    prompt = colors(ratID) + " \\\\> "
+                prompt = get_prompt(ratID)
 
                 # Interact-with-rat loop
                 while True:
@@ -937,6 +941,11 @@ if __name__ == "__main__":
 
                         if(inp == "back" or inp == "exit"):
                             break
+
+                        if(inp in rats.keys()):
+                            ratID = inp
+                            prompt = get_prompt(ratID)
+                            continue
 
                         elif(inp == "agents" or inp == "rats" or inp == "implants" or inp == "sessions"):
                             get_rats(ratID)
