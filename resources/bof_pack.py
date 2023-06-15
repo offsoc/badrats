@@ -82,16 +82,17 @@ if __name__ == "__main__":
    from binascii import hexlify
    from base64 import b64encode
 
-   if(len(sys.argv) < 3 or "-h" in sys.argv or "--help" in sys.argv):
+   if((len(sys.argv) < 3 and not "--blank" in sys.argv) or "-h" in sys.argv or "--help" in sys.argv):
        print("bof_pack: pack arguments in a format suitable to send to a beacon-object-file")
        print("Usage: bof_pack.py <format_string> <arg1> [arg2] [arg3] [...]")
        print("The format string must only include the following characters: b, i, s, z, Z")
+       print("To generate empty arguments, use --blank")
+       quit()
+   elif ("--blank" in sys.argv):
+       packed = bof_pack(fstring="", args=[])
    else:
-       try:
-           packed = bof_pack(fstring=sys.argv[1], args=sys.argv[2:])
-           print(" ".join(sys.argv[2:]) + " (\"" + sys.argv[1] + "\")")
-           print("-hex-> " + hexlify(packed).decode('utf-8'))
-           print("-b64-> " + b64encode(packed).decode('utf-8'))
-       except Exception as e:
-           print("Exception occured packing your data:")
-           print(e)
+       packed = bof_pack(fstring=sys.argv[1], args=sys.argv[2:])
+
+   print(" ".join(sys.argv[2:]) + " (\"" + sys.argv[1] + "\")")
+   print("-hex-> " + hexlify(packed).decode('utf-8'))
+   print("-b64-> " + b64encode(packed).decode('utf-8'))
