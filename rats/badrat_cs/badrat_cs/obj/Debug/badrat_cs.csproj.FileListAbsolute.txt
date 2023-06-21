@@ -1,0 +1,11 @@
+C:\Users\kevinclark\Source\Repos\badrat_cs\rats\badrat_cs\badrat_cs\bin\Debug\badrat_cs.exe.config
+C:\Users\kevinclark\Source\Repos\badrat_cs\rats\badrat_cs\badrat_cs\bin\Debug\badrat_cs.exe
+C:\Users\kevinclark\Source\Repos\badrat_cs\rats\badrat_cs\badrat_cs\bin\Debug\badrat_cs.pdb
+C:\Users\kevinclark\Source\Repos\badrat_cs\rats\badrat_cs\badrat_cs\bin\Debug\Newtonsoft.Json.xml
+C:\Users\kevinclark\Source\Repos\badrat_cs\rats\badrat_cs\badrat_cs\obj\Debug\badrat_cs.csproj.AssemblyReference.cache
+C:\Users\kevinclark\Source\Repos\badrat_cs\rats\badrat_cs\badrat_cs\obj\Debug\badrat_cs.csproj.SuggestedBindingRedirects.cache
+C:\Users\kevinclark\Source\Repos\badrat_cs\rats\badrat_cs\badrat_cs\obj\Debug\badrat_cs.csproj.CoreCompileInputs.cache
+C:\Users\kevinclark\Source\Repos\badrat_cs\rats\badrat_cs\badrat_cs\obj\Debug\badrat_cs.csproj.Fody.CopyLocal.cache
+C:\Users\kevinclark\Source\Repos\badrat_cs\rats\badrat_cs\badrat_cs\obj\Debug\badrat_cs.csproj.CopyComplete
+C:\Users\kevinclark\Source\Repos\badrat_cs\rats\badrat_cs\badrat_cs\obj\Debug\badrat_cs.exe
+C:\Users\kevinclark\Source\Repos\badrat_cs\rats\badrat_cs\badrat_cs\obj\Debug\badrat_cs.pdb

