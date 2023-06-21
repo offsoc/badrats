@@ -8,7 +8,7 @@ import sys
 # Check for existance of 'donut-python' and 'flask'
 try:
     from flask import Flask, request, redirect, Response
-    import donut
+#    import donut
 except ImportError as ie:
     print("Error: Libraries are missing -> \r\n{}".format(ie))
     sys.exit(1)
@@ -215,7 +215,7 @@ def pretty_print_banner():
     $$ |  $$ | $$$$$$$ |$$ /  $$ |$$ |  \__| $$$$$$$ |  $$ |    \$$$$$$\        (    / _/    /' o O| ,_( ))___     (`
     $$ |  $$ |$$  __$$ |$$ |  $$ |$$ |      $$  __$$ |  $$ |$$\  \____$$\        ` -|   )_  /o_O_'_(  \\'    _ `\    )
     $$$$$$$  |\$$$$$$$ |\$$$$$$$ |$$ |      \$$$$$$$ |  \$$$$  |$$$$$$$  |          `"\"\"\"`            =`---<___/---'
-    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v2.1.2 Injection Junkie        "`
+    \_______/  \_______| \_______|\__|       \_______|   \____/ \_______/  v2.1.3 Caution: Sharp Objects! "`
     """
     pretty_print(banner)
 
@@ -1035,12 +1035,12 @@ if __name__ == "__main__":
                                 continue
 
                         elif(str.startswith(inp, "bof ")):
-                            if(types[ratID] != "nim"):
-                                print("[!] Nim is the only language capable of executing BOFS, sorry!")
+                            if(types[ratID] != "nim" and types[ratID] != "c#"):
+                                pretty_print("[!] Nim and C# are the only language capable of executing BOFS, sorry!")
                                 continue
                             if(len(inp.split(' ')) < 2 or len(inp.split(' ')) == 3):
-                                print("bof - run a Beacon Object File inside a Nim implant")
-                                print("Usage: bof <bof_file.x84.o> [format-string] [bof-args] [...]")
+                                pretty_print("bof - run a Beacon Object File inside a Nim implant")
+                                pretty_print("Usage: bof <bof_file.x84.o> [format-string] [bof-args] [...]")
                                 continue
                             bof_file = inp.split(" ")[1]
                             try:
@@ -1048,7 +1048,7 @@ if __name__ == "__main__":
                                     bofbytes = fd.read()
                             except Exception as e:
                                 pretty_print("[!] Could not open file " + colors(bof_file) + " for reading or other unexpected error occured")
-                                print(e)
+                                pretty_print(e)
                                 continue
                             if(len(inp.split(" ")) > 3): # There are arguments, let's pack them up
                                 try:
