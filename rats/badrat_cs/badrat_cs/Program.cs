@@ -448,6 +448,9 @@ namespace B4dr4t
             Globl.HOME[0] = home;
 
             HttpClient client = new HttpClient();
+            //specify to use TLS 1.2 as default connection
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+            
             PowerShell ps = PowerShell.Create();
             Collection<PSObject> output = null;
             JObject jsObject = new JObject();
