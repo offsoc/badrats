@@ -586,7 +586,8 @@ def parse_c_sharp_args(argument_string):
 
     argument_string = '","'.join(stringlist)
     # Replace backslashes with a literal backslash so an operator can type a file path like C:\windows\system32 instead of C:\\windows\\system32
-    argument_string = argument_string.replace("\\", "\\\\")
+    # Commented out to fix double backslash problem in `csharp` arguments
+    # argument_string = argument_string.replace("\\", "\\\\")
     return('"' + argument_string + '"')
 
 # Simple xor cipher to encrypt C# binaries and encode them into a base64 string
